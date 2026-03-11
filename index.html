@@ -305,43 +305,25 @@ function ablyConnect(code){
     // subscribe to presence changes
     ablyCh.presence.subscribe(() => syncPresence());
 
-    // enter presence
-    ablyCh.presence.enter({ slot: null, rdy: false }, err => {
-      if(err){ alert('خطأ في الدخول: ' + err.message); return; }
+    // assign slot immediately — no need to wait
+    const taken = [];  // first check via presence.get
+    ablyCh.presence.get((err2, members) => {
+      const taken = (members||[])
+        .filter(m => m.clientId !== myId && m.data && m.data.slot)
+        .map(m => m.data.slot);
 
-      // get current members to find a free slot
-      ablyCh.presence.get((err2, members) => {
-        if(err2){ alert('خطأ في الاتصال'); return; }
+      const free = SLOTS.find(s => !taken.includes(s)) || SLOTS[0];
+      mySlot = free;
 
-        const taken = members
-          .filter(m => m.clientId !== myId && m.data && m.data.slot)
-          .map(m => m.data.slot);
+      // enter presence with our slot
+      ablyCh.presence.enter({ slot: mySlot, rdy: false });
 
-        const free = SLOTS.find(s => !taken.includes(s));
+      // show lobby
+      document.getElementById('room-code-display').textContent = code;
+      showScreen('lobby');
 
-        if(!free){
-          alert('الغرفة ممتلئة! جرب غرفة تانية.');
-          ablyClient.close();
-          ablyClient = null;
-          ablyCh = null;
-          return;
-        }
-
-        mySlot = free;
-
-        // update presence with our slot
-        ablyCh.presence.update({ slot: mySlot, rdy: false });
-
-        // show lobby
-        document.getElementById('room-code-display').textContent = code;
-        showScreen('lobby');
-
-        // sync lobby UI
-        syncPresence();
-
-        // announce ourselves to others
-        pub({ t:'hello', slot: mySlot });
-      });
+      syncPresence();
+      pub({ t:'hello', slot: mySlot });
     });
   });
 
