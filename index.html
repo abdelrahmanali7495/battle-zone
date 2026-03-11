@@ -281,76 +281,74 @@ function enterRoom(room){
   lobSlots={r0:null,r1:null,b0:null,b1:null};
   lobRdy  ={r0:false,r1:false,b0:false,b1:false};
 
-  // Properly close old connection before creating new one
   if(ablyClient){
-    try{
-      ablyClient.connection.off();
-      ablyClient.close();
-    }catch(e){}
-    ablyClient=null;
-    ablyCh=null;
+    const _old=ablyClient;
+    ablyClient=null; ablyCh=null;
+    _old.connection.once('closed',()=>_connectAbly(room));
+    try{ _old.close(); }catch(e){ _connectAbly(room); }
+  } else {
+    _connectAbly(room);
   }
-
-  // Small delay to ensure old connection is fully closed
-  setTimeout(()=>_connectAbly(room), 200);
 }
 
 function _connectAbly(room){
-  ablyClient=new Ably.Realtime({
-    key: ABLY_KEY,
-    clientId: myId,
-    closeOnUnload: true,
-    disconnectedRetryTimeout: 5000,
-    suspendedRetryTimeout: 10000,
-  });
+  if(ablyClient) return;
+  ablyClient=new Ably.Realtime({key:ABLY_KEY, clientId:myId, closeOnUnload:true});
 
   ablyClient.connection.on('connected',()=>{
     ablyCh=ablyClient.channels.get('bzone-'+room);
-    ablyCh.subscribe(m=>onMsg(m.data));
-    ablyCh.presence.subscribe('enter',  ()=>syncPresence());
-    ablyCh.presence.subscribe('leave',  ()=>syncPresence());
-    ablyCh.presence.subscribe('update', ()=>syncPresence());
-    ablyCh.presence.enter({id:myId,slot:null,rdy:false}).then(()=>{
-      ablyCh.presence.get((err,members)=>{
-        if(err){alert('خطأ في الاتصال، حاول مجدداً');return;}
-        const taken=members.filter(m=>m.data?.slot).map(m=>m.data.slot);
-        const free=SLOTS.find(s=>!taken.includes(s));
-        if(!free){alert('الغرفة ممتلئة!');return;}
-        mySlot=free;
-        ablyCh.presence.update({id:myId,slot:mySlot,rdy:false});
-        document.getElementById('lob-badge').textContent=room;
+
+    // استقبل الرسايل
+    ablyCh.subscribe(m=>{ if(m.data) onMsg(m.data); });
+
+    // تابع الـ presence
+    ablyCh.presence.subscribe(()=>syncPresence());
+
+    // ادخل الغرفة
+    ablyCh.presence.enter({id:myId, slot:null, rdy:false})
+    .then(()=>{
+      // بعد ما ندخل، نشوف الـ slots المتاحة
+      ablyCh.presence.get((err, members)=>{
+        if(err){ alert('خطأ في الاتصال، حاول مجدداً'); return; }
+
+        const taken = members
+          .filter(m=> m.clientId !== myId && m.data?.slot)
+          .map(m=> m.data.slot);
+
+        const free = SLOTS.find(s=> !taken.includes(s));
+        if(!free){ alert('الغرفة ممتلئة!'); return; }
+
+        mySlot = free;
+        ablyCh.presence.update({id:myId, slot:mySlot, rdy:false});
+        document.getElementById('lob-badge').textContent = room;
         show('lobby');
         syncPresence();
-        pub({t:'join',id:myId,slot:mySlot,rdy:false});
+        // أعلن للباقيين إنك دخلت
+        pub({t:'join', id:myId, slot:mySlot, rdy:false});
       });
-    }).catch(err=>{
-      alert('فشل الدخول للغرفة: '+err.message);
-    });
+    })
+    .catch(e=>{ alert('فشل الدخول: '+(e.message||e)); });
   });
 
-  ablyClient.connection.on('failed', (stateChange)=>{
-    alert('فشل الاتصال بالسيرفر ❌\n'+( stateChange?.reason?.message||''));
+  ablyClient.connection.on('failed', e=>{
+    alert('فشل الاتصال بـ Ably ❌\n'+(e?.reason?.message||''));
   });
 
-  ablyClient.connection.on('suspended', ()=>{
-    console.warn('Ably connection suspended, will retry...');
-  });
-
-  ablyClient.connection.on('disconnected', ()=>{
-    console.warn('Ably disconnected, attempting reconnect...');
+  ablyClient.connection.on('disconnected',()=>{
+    console.warn('Ably: disconnected, retrying...');
   });
 }
 
 function syncPresence(){
   if(!ablyCh) return;
-  ablyCh.presence.get((err,members)=>{
+  ablyCh.presence.get((err, members)=>{
     if(err) return;
     lobSlots={r0:null,r1:null,b0:null,b1:null};
     lobRdy  ={r0:false,r1:false,b0:false,b1:false};
     members.forEach(m=>{
       if(m.data?.slot){
-        lobSlots[m.data.slot]=m.data.id||m.clientId;
-        lobRdy[m.data.slot]=!!m.data.rdy;
+        lobSlots[m.data.slot] = m.data.id || m.clientId;
+        lobRdy[m.data.slot]   = !!m.data.rdy;
       }
     });
     renderLobby();
@@ -362,30 +360,32 @@ function pub(o){ if(ablyCh) ablyCh.publish('msg',o); }
 
 function onMsg(m){
   const t=m.t;
-  if(t==='disc'){
-    if(m.id!==myId&&mySlot) pub({t:'join',id:myId,slot:mySlot,rdy:amIRdy});
-  }
-  else if(t==='join'){
+  if(t==='join'){
     if(m.id===myId) return;
-    // clear old slot for this player
+    // امسح الـ slot القديم لنفس اللاعب
     const old=Object.entries(lobSlots).find(([,v])=>v===m.id)?.[0];
-    if(old&&old!==m.slot) lobSlots[old]=null;
-    lobSlots[m.slot]=m.id; lobRdy[m.slot]=!!m.rdy;
+    if(old && old!==m.slot) lobSlots[old]=null;
+    lobSlots[m.slot]=m.id;
+    lobRdy[m.slot]=!!m.rdy;
+    // رد عليه بمعلوماتك
+    pub({t:'join', id:myId, slot:mySlot, rdy:amIRdy});
     renderLobby();
   }
   else if(t==='rdy'){
     if(m.id===myId) return;
-    lobRdy[m.slot]=m.v; renderLobby(); checkAllRdy();
+    lobRdy[m.slot]=m.v;
+    renderLobby();
+    checkAllRdy();
   }
   else if(t==='swap'){
     lobSlots[m.to]=m.fid; lobSlots[m.fr]=m.tid||null;
     lobRdy[m.to]=false;   lobRdy[m.fr]=false;
-    if(mySlot===m.to&&m.fid!==myId) mySlot=m.fr;
+    if(mySlot===m.to && m.fid!==myId) mySlot=m.fr;
     renderLobby();
   }
   else if(t==='left'){
     const s=Object.entries(lobSlots).find(([,v])=>v===m.id)?.[0];
-    if(s){lobSlots[s]=null;lobRdy[s]=false;renderLobby();}
+    if(s){lobSlots[s]=null; lobRdy[s]=false; renderLobby();}
   }
   else if(t==='start'){
     round=m.round||1; rndHits={red:0,blue:0};
@@ -393,19 +393,18 @@ function onMsg(m){
     wallHP={red:MAX_HITS,blue:MAX_HITS};
     startRound();
   }
-  // Game
   else if(t==='pos'){
     if(m.slot===mySlot) return;
     if(m.slot==='r0'||m.slot==='b0') gx[m.slot]=m.x;
     else sx[m.slot]=m.x;
   }
   else if(t==='bul'){
-    if(!m.id?.startsWith(myId)) bullets.push({...m,life:1,mine:false});
+    if(!m.id?.startsWith(myId)) bullets.push({...m, life:1, mine:false});
   }
   else if(t==='hit'){
     wallHP[m.tm]=m.hp; rndHits[m.tk]=m.rh; totals[m.tk]=m.ts;
     updHUD();
-    if(m.hp<=0) endRound(m.tk); // attacker's team wins round
+    if(m.hp<=0) endRound(m.tk);
   }
   else if(t==='nxt'){
     round=m.round; rndHits={red:0,blue:0}; wallHP={red:MAX_HITS,blue:MAX_HITS};
@@ -456,8 +455,15 @@ function toggleReady(){
 }
 
 function checkAllRdy(){
-  if(Object.values(lobSlots).filter(Boolean).length<4) return;
-  if(SLOTS.every(s=>lobRdy[s])&&lobSlots.r0===myId){
+  const filled = SLOTS.filter(s=>lobSlots[s]);
+  const rdyAll = filled.every(s=>lobRdy[s]);
+  // لازم يكون فيه لاعب واحد على الأقل في كل فريق، وكلهم مستعدين
+  const hasRed  = lobSlots['r0']||lobSlots['r1'];
+  const hasBlue = lobSlots['b0']||lobSlots['b1'];
+  if(!hasRed||!hasBlue||filled.length<2||!rdyAll) return;
+  // أكبر clientId يبدأ اللعبة (عشان كل اللاعبين يتفقوا على نفس واحد يبدأ)
+  const leader = filled.map(s=>lobSlots[s]).sort()[0];
+  if(leader===myId){
     pub({t:'start',round:1});
     round=1;rndHits={red:0,blue:0};totals={red:0,blue:0};
     wallHP={red:MAX_HITS,blue:MAX_HITS};
