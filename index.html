@@ -3,873 +3,1247 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>⚔️ Battle Zone</title>
-<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
+<title>حرب الجدران</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Orbitron:wght@700;900&display=swap');
-:root{--red:#ff2244;--blue:#1188ff;--gold:#ffcc00;--green:#00dd66;--dark:#07070f;}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
-html,body{width:100%;height:100dvh;overflow:hidden;background:var(--dark);color:#fff;font-family:'Tajawal',sans-serif;touch-action:none;}
-.screen{display:none;width:100%;height:100dvh;}
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&family=Rajdhani:wght@600;700&display=swap');
+
+:root {
+  --red:#FF1A2E; --red-g:rgba(255,26,46,0.55); --red-d:rgba(255,26,46,0.13);
+  --blue:#00C8FF; --blue-g:rgba(0,200,255,0.55); --blue-d:rgba(0,200,255,0.13);
+  --bg:#07070e; --gold:#FFD700; --panel:rgba(255,255,255,0.04);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:#fff;font-family:'Tajawal',sans-serif;overflow:hidden;height:100vh;display:flex;align-items:center;justify-content:center;user-select:none;}
+
+/* ── SCREENS ── */
+.screen{display:none;width:100%;height:100vh;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;}
 .screen.active{display:flex;}
 
-/* HOME */
-#home{
-  flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 20px;
-  background:radial-gradient(ellipse at 50% 20%,rgba(255,34,68,.2),transparent 55%),
-             radial-gradient(ellipse at 50% 80%,rgba(17,136,255,.2),transparent 55%),var(--dark);
-}
-.logo{font-family:'Orbitron',monospace;font-size:clamp(22px,6vw,36px);font-weight:900;
-  background:linear-gradient(90deg,var(--red),var(--gold),var(--blue));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:4px;}
-.tagline{font-size:11px;opacity:.4;letter-spacing:3px;}
-.divider{width:100%;max-width:320px;text-align:center;opacity:.3;font-size:12px;letter-spacing:3px;}
-.gbtn{border:none;border-radius:12px;font-family:'Tajawal',sans-serif;font-weight:700;cursor:pointer;transition:transform .1s;width:100%;max-width:320px;}
-.gbtn:active{transform:scale(.94);}
-.gbtn-red{background:linear-gradient(135deg,var(--red),#ff5533);color:#fff;box-shadow:0 4px 18px rgba(255,34,68,.4);padding:15px;font-size:17px;}
-.gbtn-blue{background:linear-gradient(135deg,var(--blue),#55bbff);color:#fff;box-shadow:0 4px 18px rgba(17,136,255,.4);padding:15px;font-size:17px;}
-.gbtn-gold{background:linear-gradient(135deg,var(--gold),#ff9900);color:#000;font-weight:900;padding:14px 32px;font-size:17px;width:auto;}
-.join-box{width:100%;max-width:320px;display:flex;flex-direction:column;align-items:center;gap:10px;}
-.jinput{width:160px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.13);border-radius:12px;color:#fff;font-family:'Orbitron',monospace;font-size:24px;font-weight:700;padding:12px;text-align:center;letter-spacing:8px;outline:none;text-transform:uppercase;}
-.jinput:focus{border-color:var(--blue);}
-.jinput::placeholder{font-size:11px;letter-spacing:2px;opacity:.3;}
+.bg-grid{position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,26,46,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,255,0.05) 1px,transparent 1px);
+  background-size:55px 55px;}
+.bg-grid::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,transparent 30%,var(--bg) 100%);}
 
-/* LOBBY */
-#lobby{flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;}
-.lob-top{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:360px;}
-.lob-title{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;letter-spacing:2px;}
-.code-share{width:100%;max-width:360px;background:rgba(255,204,0,.06);border:1.5px solid rgba(255,204,0,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
-.code-share-label{font-size:10px;opacity:.45;letter-spacing:2px;}
-.code-val{font-family:'Orbitron',monospace;font-size:26px;font-weight:900;color:var(--gold);letter-spacing:6px;}
-.copy-btn{background:rgba(255,204,0,.15);border:1px solid rgba(255,204,0,.4);border-radius:8px;color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1px;padding:7px 12px;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:'Tajawal',sans-serif;}
-.copy-btn.ok{background:rgba(0,221,102,.2);border-color:var(--green);color:var(--green);}
-.teams{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:360px;}
-.tcol{display:flex;flex-direction:column;gap:8px;}
-.thead{font-size:12px;font-weight:700;letter-spacing:2px;text-align:center;padding:5px 8px;border-radius:8px;}
-.thead.r{color:var(--red);background:rgba(255,34,68,.1);}
-.thead.b{color:var(--blue);background:rgba(17,136,255,.1);}
-.pcard{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 8px;text-align:center;cursor:pointer;transition:all .2s;min-height:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;}
-.pcard.mine{border-color:var(--gold);background:rgba(255,204,0,.07);box-shadow:0 0 14px rgba(255,204,0,.2);}
-.pcard.rdy{border-color:var(--green);background:rgba(0,221,102,.06);}
-.pcard.empty{opacity:.4;border-style:dashed;}
-.picon{font-size:22px;}.pname{font-size:11px;font-weight:700;letter-spacing:1px;}.psub{font-size:9px;opacity:.6;min-height:11px;}
-.prdy{position:absolute;top:5px;right:6px;font-size:12px;display:none;}
-.pcard.rdy .prdy{display:block;}
-.swaptip{font-size:10px;opacity:.35;letter-spacing:1px;}
-.rdybtn{width:100%;max-width:360px;padding:14px;border:none;border-radius:12px;font-family:'Tajawal',sans-serif;font-size:16px;font-weight:900;cursor:pointer;background:rgba(0,221,102,.08);border:2px solid rgba(0,221,102,.3);color:var(--green);transition:all .15s;}
-.rdybtn.on{background:linear-gradient(135deg,var(--green),#008833);color:#000;border-color:var(--green);box-shadow:0 4px 20px rgba(0,221,102,.4);}
-.rdybtn:active{transform:scale(.96);}
-.lob-status{font-size:12px;opacity:.5;letter-spacing:1px;}
+/* ── MENU ── */
+#menuScreen{background:var(--bg);}
+.logo-wrap{text-align:center;z-index:1;margin-bottom:0.5rem;}
+.logo-en{font-family:'Rajdhani',sans-serif;font-size:clamp(0.75rem,2vw,1rem);letter-spacing:.5em;color:#444;display:block;margin-bottom:.15rem;}
+.logo-ar{font-size:clamp(3.5rem,9vw,6.5rem);font-weight:900;line-height:1;
+  background:linear-gradient(135deg,var(--red) 0%,#FF7070 40%,var(--blue) 65%,#66EEFF 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 25px rgba(255,26,46,.3)) drop-shadow(0 0 50px rgba(0,200,255,.3));}
+.logo-line{display:block;height:2px;margin:.4rem auto;width:180px;background:linear-gradient(90deg,transparent,var(--red),var(--blue),transparent);}
+.menu-sub{color:#3a3a50;font-size:.82rem;letter-spacing:.25em;margin-bottom:2rem;z-index:1;}
 
-/* GAME */
-#game{position:relative;overflow:hidden;}
-canvas{position:absolute;inset:0;width:100%;height:100%;}
-#hud{position:absolute;top:0;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent);pointer-events:none;}
-.hteam{display:flex;flex-direction:column;gap:2px;min-width:95px;}
-.hteam.bl{align-items:flex-end;}
-.hlbl{font-size:9px;font-family:'Orbitron',monospace;letter-spacing:2px;opacity:.7;}
-.hbar-w{width:95px;height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
-.hbar{height:100%;border-radius:4px;transition:width .15s;}
-.hbar.r{background:linear-gradient(90deg,#ff2244,#ff6622);}
-.hbar.b{background:linear-gradient(90deg,#44aaff,#1188ff);}
-.hscore{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;}
-.hscore.r{color:var(--red);text-shadow:0 0 8px var(--red);}
-.hscore.b{color:var(--blue);text-shadow:0 0 8px var(--blue);}
-.hcenter{display:flex;flex-direction:column;align-items:center;gap:2px;}
-.rlbl{font-family:'Orbitron',monospace;font-size:9px;opacity:.5;letter-spacing:2px;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:8px;}
-.myrole{font-size:10px;opacity:.65;letter-spacing:1px;}
-#touch-hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);font-size:11px;opacity:.35;letter-spacing:2px;pointer-events:none;z-index:20;white-space:nowrap;}
+.mbtn{position:relative;z-index:1;background:transparent;border:1px solid;color:#fff;
+  font-family:'Tajawal',sans-serif;font-size:1.1rem;font-weight:700;
+  padding:.85rem 2.2rem;margin:.35rem;cursor:pointer;transition:all .22s;
+  min-width:270px;overflow:hidden;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);}
+.mbtn::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .22s;}
+.mbtn:hover::before{opacity:.12;}
+.mbtn:hover{transform:scale(1.025);}
+.mbtn.r{border-color:var(--red);}  .mbtn.r::before{background:var(--red);}  .mbtn.r:hover{box-shadow:0 0 22px var(--red-g);}
+.mbtn.b{border-color:var(--blue);}  .mbtn.b::before{background:var(--blue);}  .mbtn.b:hover{box-shadow:0 0 22px var(--blue-g);}
+.mbtn.g{border-color:#555;}  .mbtn.g::before{background:#555;}  .mbtn.g:hover{box-shadow:0 0 22px rgba(200,200,200,.2);}
 
-/* overlays */
-#round-end,#win-screen{display:none;position:absolute;inset:0;z-index:60;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);flex-direction:column;align-items:center;justify-content:center;gap:16px;}
-.oe-title{font-family:'Orbitron',monospace;font-size:clamp(18px,4.5vw,28px);font-weight:900;text-align:center;}
-.oe-scores{display:flex;gap:28px;align-items:center;}
-.oe-s .ov{font-family:'Orbitron',monospace;font-size:30px;font-weight:900;}
-.oe-s .ol{font-size:10px;opacity:.5;letter-spacing:2px;text-align:center;}
-.oe-cd{font-family:'Orbitron',monospace;font-size:54px;font-weight:900;color:var(--gold);text-shadow:0 0 20px var(--gold);}
-.ws-scores{display:flex;gap:12px;}
-.wss{text-align:center;padding:12px 18px;border-radius:12px;min-width:88px;}
-.wss.r{background:rgba(255,34,68,.12);border:1px solid rgba(255,34,68,.3);}
-.wss.b{background:rgba(17,136,255,.12);border:1px solid rgba(17,136,255,.3);}
-.wss .wv{font-family:'Orbitron',monospace;font-size:32px;font-weight:900;}
-.wss .wl{font-size:10px;opacity:.5;letter-spacing:2px;}
+/* ── SETTINGS ── */
+#settingsScreen{background:var(--bg);gap:1rem;}
+.sett-title{font-size:1.6rem;font-weight:900;z-index:1;letter-spacing:.05em;color:#ccc;}
+
+.sett-card{background:rgba(255,255,255,.03);border:1px solid #1e1e32;padding:1rem 1.4rem;z-index:1;width:min(380px,88vw);}
+.sett-card h3{font-size:.75rem;letter-spacing:.2em;color:#555;text-transform:uppercase;margin-bottom:.7rem;}
+.sett-row{display:flex;align-items:center;justify-content:space-between;margin:.4rem 0;}
+.sett-label{font-size:.95rem;font-weight:700;}
+.sett-label small{display:block;font-size:.68rem;color:#555;font-weight:400;}
+
+.toggle{position:relative;width:46px;height:24px;cursor:pointer;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:#1e1e32;border-radius:24px;transition:.2s;}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#555;border-radius:50%;transition:.2s;}
+.toggle input:checked+.toggle-slider{background:var(--blue);}
+.toggle input:checked+.toggle-slider::before{transform:translateX(22px);background:#fff;}
+
+.num-ctrl{display:flex;align-items:center;gap:.4rem;}
+.num-ctrl button{width:28px;height:28px;background:transparent;border:1px solid #333;color:#fff;
+  font-size:1rem;cursor:pointer;line-height:1;transition:all .15s;}
+.num-ctrl button:hover{border-color:var(--blue);color:var(--blue);}
+.num-ctrl span{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;min-width:42px;text-align:center;color:#fff;}
+
+/* ── ROLE SELECT ── */
+#roleScreen{background:var(--bg);gap:1.2rem;}
+.role-hdr{text-align:center;z-index:1;}
+.role-hdr h2{font-size:clamp(1.4rem,4vw,2rem);font-weight:900;}
+.role-hdr p{color:#444;font-size:.8rem;margin-top:.2rem;}
+
+.roles-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;z-index:1;width:min(500px,92vw);}
+.rcard{background:var(--panel);border:1px solid #1e1e2a;padding:1rem .9rem;cursor:pointer;text-align:center;
+  transition:all .18s;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);position:relative;overflow:hidden;}
+.rcard::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .18s;}
+.rcard.rc::before{background:linear-gradient(135deg,var(--red-d),transparent);}
+.rcard.bc::before{background:linear-gradient(135deg,var(--blue-d),transparent);}
+.rcard:hover::before,.rcard.sel::before{opacity:1;}
+.rcard.sel.rc{border-color:var(--red);box-shadow:0 0 18px var(--red-g);}
+.rcard.sel.bc{border-color:var(--blue);box-shadow:0 0 18px var(--blue-g);}
+.rcard:hover{transform:translateY(-2px);}
+.ri{font-size:1.8rem;margin-bottom:.3rem;}
+.rn{font-weight:900;font-size:.95rem;}
+.rd{font-size:.68rem;color:#555;margin-top:.15rem;line-height:1.4;}
+.rt{font-size:.68rem;font-weight:700;margin-top:.3rem;letter-spacing:.08em;}
+.rt.r{color:var(--red);}.rt.b{color:var(--blue);}
+
+/* ── LOBBY ── */
+#lobbyScreen{background:var(--bg);gap:.8rem;}
+.lob-title{font-size:1.7rem;font-weight:900;color:var(--blue);text-shadow:0 0 18px var(--blue-g);z-index:1;}
+.room-row{display:flex;gap:.4rem;z-index:1;}
+.rinput{background:#0d0d1a;border:1px solid var(--blue);color:#fff;font-family:'Rajdhani',sans-serif;
+  font-size:1.3rem;padding:.55rem .9rem;width:165px;letter-spacing:.3em;text-align:center;outline:none;}
+.rinput:focus{box-shadow:0 0 12px var(--blue-g);}
+.ibtn{background:transparent;border:1px solid;color:#fff;font-family:'Tajawal',sans-serif;
+  font-size:.88rem;font-weight:700;padding:.55rem 1rem;cursor:pointer;transition:all .18s;}
+.ibtn.b{border-color:var(--blue);}  .ibtn.b:hover{background:var(--blue);color:#000;}
+.ibtn.r{border-color:var(--red);}   .ibtn.r:hover{background:var(--red);color:#fff;}
+.lslots{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;z-index:1;width:min(420px,90vw);}
+.lslot{background:#0d0d1a;border:1px solid #1e1e2e;padding:.65rem .8rem;text-align:center;font-size:.8rem;transition:all .3s;}
+.lslot.fr{border-color:var(--red);color:var(--red);}
+.lslot.fb{border-color:var(--blue);color:var(--blue);}
+.lslot.fm{border-color:var(--gold);color:var(--gold);box-shadow:0 0 8px rgba(255,215,0,.25);}
+.lstatus{color:#555;font-size:.82rem;z-index:1;min-height:1.3em;text-align:center;}
+.lrole{font-size:.82rem;color:var(--gold);z-index:1;min-height:1.3em;}
+
+/* ── GAME ── */
+#gameScreen{background:var(--bg);position:relative;justify-content:center;}
+#gameCanvas{display:block;position:relative;z-index:1;}
+#particleCanvas{position:fixed;pointer-events:none;z-index:2;}
+
+/* HUD */
+#hud{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 10px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.96),rgba(0,0,0,.4),transparent);
+  pointer-events:none;z-index:10;}
+.hside{display:flex;flex-direction:column;gap:1px;min-width:110px;}
+.hside.hr{align-items:flex-end;}
+.htn{font-size:.6rem;letter-spacing:.12em;font-weight:700;opacity:.55;text-transform:uppercase;}
+.hbullets{font-family:'Rajdhani',sans-serif;font-size:1.5rem;font-weight:700;line-height:1;}
+.hbullets.r{color:var(--red);text-shadow:0 0 10px var(--red-g);}
+.hbullets.b{color:var(--blue);text-shadow:0 0 10px var(--blue-g);}
+.hwbar{display:flex;gap:1px;margin-top:2px;}
+.hwseg{width:6px;height:4px;background:#1a1a2a;border-radius:1px;transition:background .3s;}
+.hwseg.h{background:rgba(255,255,255,.45);}
+.hwseg.m{background:rgba(255,200,0,.7);}
+.hwseg.l{background:rgba(255,80,0,.85);}
+
+.hctr{text-align:center;flex:1;}
+.hround{font-size:.6rem;color:#444;letter-spacing:.12em;}
+.hscore{font-family:'Rajdhani',sans-serif;font-size:1.7rem;font-weight:700;line-height:1;}
+.hscore .rs{color:var(--red);} .hscore .bs{color:var(--blue);} .hscore .sp{color:#2a2a3a;margin:0 3px;}
+
+/* Timer bar */
+#timerBar{position:absolute;top:52px;left:0;right:0;height:3px;z-index:10;pointer-events:none;background:#0d0d1a;}
+#timerFill{height:100%;width:100%;}
+
+/* Touch indicator */
+#touchIndicator{position:absolute;inset:0;z-index:6;pointer-events:none;}
+
+/* Round overlay */
+#roundOverlay{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .35s;
+  background:radial-gradient(ellipse 75% 75% at 50% 50%,rgba(0,0,0,.9),rgba(0,0,0,.97));}
+#roundOverlay.show{opacity:1;}
+.ro-lbl{font-size:.7rem;letter-spacing:.35em;color:#444;text-transform:uppercase;margin-bottom:.25rem;}
+.ro-big{font-size:clamp(2.2rem,7vw,4.5rem);font-weight:900;}
+.ro-big.r{color:var(--red);text-shadow:0 0 35px var(--red-g);}
+.ro-big.b{color:var(--blue);text-shadow:0 0 35px var(--blue-g);}
+.ro-big.w{color:#fff;text-shadow:0 0 25px rgba(255,255,255,.3);}
+.ro-sub{font-size:.85rem;color:#555;margin-top:.4rem;}
+
+/* Controls hint */
+#ctrlHint{position:absolute;bottom:6px;left:0;right:0;text-align:center;
+  font-size:.65rem;color:#2a2a40;pointer-events:none;z-index:10;font-family:'Rajdhani',sans-serif;}
+
+/* Flash */
+#flash{position:absolute;inset:0;pointer-events:none;z-index:20;opacity:0;}
+
+/* Role badge */
+#roleBadge{position:absolute;bottom:22px;right:8px;font-size:.6rem;color:#2a2a40;z-index:10;pointer-events:none;font-family:'Rajdhani',sans-serif;}
+
+/* Ably status */
+#netDot{position:absolute;top:58px;right:6px;font-size:.6rem;color:#252535;z-index:10;}
+#netDot.on{color:#0f0;} #netDot.err{color:var(--red);}
+
+/* ── GAME OVER ── */
+#gameOverScreen{background:var(--bg);gap:.8rem;}
+.go-win{font-size:clamp(1.8rem,5vw,3rem);font-weight:900;text-align:center;}
+.go-sc{font-family:'Rajdhani',sans-serif;font-size:2.2rem;letter-spacing:.3em;}
+.go-rounds{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;}
+.go-rbox{background:#0d0d1a;border:1px solid #1e1e2e;padding:.55rem .9rem;text-align:center;min-width:85px;}
+.go-rbox .grn{font-size:.6rem;color:#444;letter-spacing:.1em;margin-bottom:3px;}
+.go-rbox .grr{color:var(--red);font-size:.88rem;font-weight:700;}
+.go-rbox .grb{color:var(--blue);font-size:.88rem;font-weight:700;}
+.go-rbox .grw{font-size:.65rem;margin-top:3px;}
+
+/* scanlines */
+#scl{position:fixed;inset:0;pointer-events:none;z-index:99;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px);}
+
+/* corner decos */
+.cd{position:absolute;width:70px;height:70px;pointer-events:none;z-index:1;opacity:.25;}
+.cd.tl{top:0;left:0;border-top:2px solid var(--red);border-left:2px solid var(--red);}
+.cd.tr{top:0;right:0;border-top:2px solid var(--blue);border-right:2px solid var(--blue);}
+.cd.bl{bottom:0;left:0;border-bottom:2px solid var(--red);border-left:2px solid var(--red);}
+.cd.br{bottom:0;right:0;border-bottom:2px solid var(--blue);border-right:2px solid var(--blue);}
+
+@keyframes flicker{0%,100%{opacity:1}91%{opacity:1}92%{opacity:.7}93%{opacity:1}}
+.logo-ar{animation:flicker 9s infinite;}
+.ldots::after{content:'';animation:ld 1.2s infinite;}
+@keyframes ld{0%{content:'.'}33%{content:'..'}66%{content:'...'}}
 </style>
 </head>
 <body>
+<div id="scl"></div>
 
-<!-- HOME -->
-<div class="screen active" id="home">
-  <div class="logo">⚔️ BATTLE ZONE</div>
-  <div class="tagline">٤ لاعبين — فريقين — ٣ جولات</div>
-  <button class="gbtn gbtn-red" onclick="createRoom()">إنشاء غرفة جديدة ＋</button>
-  <div class="divider">— أو ادخل غرفة موجودة —</div>
-  <div class="join-box">
-    <input class="jinput" id="jinput" type="text" maxlength="5" placeholder="XXXXX" autocomplete="off"/>
-    <button class="gbtn gbtn-blue" onclick="doJoin()">دخول 🚪</button>
+<!-- ═══ MENU ═══ -->
+<div id="menuScreen" class="screen active">
+  <div class="bg-grid"></div>
+  <div class="cd tl"></div><div class="cd tr"></div><div class="cd bl"></div><div class="cd br"></div>
+  <div class="logo-wrap">
+    <span class="logo-en">wall battle</span>
+    <span class="logo-ar">حرب الجدران</span>
+    <span class="logo-line"></span>
+  </div>
+  <div class="menu-sub">اكسر جدار العدو قبل أن يكسر جدارك</div>
+  <button class="mbtn r" onclick="showRoleSelect()">🎮 &nbsp;لعب منفرد &nbsp;<small style="opacity:.45;font-size:.72rem">ضد الكمبيوتر</small></button>
+  <button class="mbtn b" onclick="showLobby()">🌐 &nbsp;لعب أونلاين &nbsp;<small style="opacity:.45;font-size:.72rem">4 لاعبين</small></button>
+  <button class="mbtn g" onclick="showSettings()" style="min-width:180px;padding:.65rem 1.5rem;font-size:.95rem;margin-top:.6rem;">⚙️ &nbsp;إعدادات</button>
+</div>
+
+<!-- ═══ SETTINGS ═══ -->
+<div id="settingsScreen" class="screen">
+  <div class="bg-grid"></div>
+  <div class="sett-title">⚙️ الإعدادات</div>
+
+  <div class="sett-card">
+    <h3>الموقت</h3>
+    <div class="sett-row">
+      <div class="sett-label">تفعيل الموقت<small>إيقاف = الجولة لا تنتهي بالوقت</small></div>
+      <label class="toggle"><input type="checkbox" id="timerEnabled" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="sett-row" id="timerValueRow">
+      <div class="sett-label">مدة الجولة<small id="timerSec">40 ثانية</small></div>
+      <div class="num-ctrl">
+        <button onclick="adjSetting('timer',-5)">−</button>
+        <span id="timerVal">40</span>
+        <button onclick="adjSetting('timer',+5)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sett-card">
+    <h3>الطلقات والجولات</h3>
+    <div class="sett-row">
+      <div class="sett-label">طلقات لكل فريق<small id="bulletsSub">لكل جولة</small></div>
+      <div class="num-ctrl">
+        <button onclick="adjSetting('bullets',-100)">−</button>
+        <span id="bulletsVal">1000</span>
+        <button onclick="adjSetting('bullets',+100)">+</button>
+      </div>
+    </div>
+    <div class="sett-row">
+      <div class="sett-label">عدد الجولات</div>
+      <div class="num-ctrl">
+        <button onclick="adjSetting('rounds',-1)">−</button>
+        <span id="roundsVal">3</span>
+        <button onclick="adjSetting('rounds',+1)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="mbtn b" onclick="showMenu()" style="min-width:200px;font-size:1rem;padding:.75rem 1.5rem;margin-top:.5rem;">← حفظ والرجوع</button>
+</div>
+
+<!-- ═══ ROLE SELECT ═══ -->
+<div id="roleScreen" class="screen">
+  <div class="bg-grid"></div>
+  <div class="role-hdr">
+    <h2>اختر دورك</h2>
+    <p>الكمبيوتر يتولى باقي الأدوار تلقائياً</p>
+  </div>
+  <div class="roles-grid">
+    <div class="rcard rc" data-role="redShooter" onclick="pickRole(this)">
+      <div class="ri">🔫</div><div class="rn">رشاش أحمر</div>
+      <div class="rd">يطلق النار على جدار الأزرق</div>
+      <div class="rt r">🔴 الفريق الأحمر</div>
+    </div>
+    <div class="rcard rc" data-role="redShield" onclick="pickRole(this)">
+      <div class="ri">🛡️</div><div class="rn">درع أحمر</div>
+      <div class="rd">يصدّ طلقات الأزرق عن جدارك</div>
+      <div class="rt r">🔴 الفريق الأحمر</div>
+    </div>
+    <div class="rcard bc" data-role="blueShooter" onclick="pickRole(this)">
+      <div class="ri">🔫</div><div class="rn">رشاش أزرق</div>
+      <div class="rd">يطلق النار على جدار الأحمر</div>
+      <div class="rt b">🔵 الفريق الأزرق</div>
+    </div>
+    <div class="rcard bc" data-role="blueShield" onclick="pickRole(this)">
+      <div class="ri">🛡️</div><div class="rn">درع أزرق</div>
+      <div class="rd">يصدّ طلقات الأحمر عن جدارك</div>
+      <div class="rt b">🔵 الفريق الأزرق</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:.5rem;z-index:1;margin-top:.5rem;">
+    <button class="mbtn r" id="startBtn" onclick="startOffline()" style="min-width:190px;font-size:.98rem;padding:.75rem 1.4rem;" disabled>▶ ابدأ اللعب</button>
+    <button class="ibtn r" onclick="showMenu()">← رجوع</button>
+  </div>
+  <div id="roleHint" style="color:#3a3a55;font-size:.75rem;margin-top:.3rem;z-index:1;text-align:center;"></div>
+</div>
+
+<!-- ═══ LOBBY ═══ -->
+<div id="lobbyScreen" class="screen">
+  <div class="bg-grid"></div>
+  <div class="lob-title">🌐 غرفة اللعب</div>
+  <div class="room-row">
+    <input class="rinput" id="roomCode" placeholder="XXXX" maxlength="6" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+    <button class="ibtn b" onclick="joinRoom()">دخول</button>
+    <button class="ibtn b" onclick="createRoom()">إنشاء</button>
+  </div>
+  <div class="lslots">
+    <div class="lslot" id="ls0">🔴 رشاش أحمر — فارغ</div>
+    <div class="lslot" id="ls1">🔴 درع أحمر — فارغ</div>
+    <div class="lslot" id="ls2">🔵 رشاش أزرق — فارغ</div>
+    <div class="lslot" id="ls3">🔵 درع أزرق — فارغ</div>
+  </div>
+  <div class="lrole" id="myLobbyRole"></div>
+  <div class="lstatus" id="lobbyStatus">أدخل كود الغرفة أو أنشئ جديدة</div>
+  <div style="display:flex;gap:.4rem;z-index:1;margin-top:.4rem;">
+    <button class="ibtn b" id="readyBtn" onclick="setReady()" style="display:none;padding:.55rem 1.3rem;font-size:.95rem;">✅ جاهز</button>
+    <button class="ibtn r" onclick="showMenu()">← رجوع</button>
   </div>
 </div>
 
-<!-- LOBBY -->
-<div class="screen" id="lobby">
-  <div class="lob-top">
-    <div class="lob-title">غرفة الانتظار</div>
-  </div>
-  <div class="code-share">
-    <div>
-      <div class="code-share-label">شارك الكود مع أصحابك 👇</div>
-      <div class="code-val" id="room-code-display">-----</div>
-    </div>
-    <button class="copy-btn" id="copy-btn" onclick="copyRoomCode()">نسخ 📋</button>
-  </div>
-  <div class="teams">
-    <div class="tcol">
-      <div class="thead r">🔴 الأحمر</div>
-      <div class="pcard empty" id="card-r0" onclick="reqSwap('r0')">
-        <div class="picon">🔫</div><div class="pname">رشاش</div><div class="psub"></div><div class="prdy">✅</div>
-      </div>
-      <div class="pcard empty" id="card-r1" onclick="reqSwap('r1')">
-        <div class="picon">🛡️</div><div class="pname">درع</div><div class="psub"></div><div class="prdy">✅</div>
-      </div>
-    </div>
-    <div class="tcol">
-      <div class="thead b">🔵 الأزرق</div>
-      <div class="pcard empty" id="card-b0" onclick="reqSwap('b0')">
-        <div class="picon">🔫</div><div class="pname">رشاش</div><div class="psub"></div><div class="prdy">✅</div>
-      </div>
-      <div class="pcard empty" id="card-b1" onclick="reqSwap('b1')">
-        <div class="picon">🛡️</div><div class="pname">درع</div><div class="psub"></div><div class="prdy">✅</div>
-      </div>
-    </div>
-  </div>
-  <div class="swaptip">💡 اضغط على أي بطاقة لتبادل المكان</div>
-  <button class="rdybtn" id="rdybtn" onclick="toggleReady()">✋ مستعد؟</button>
-  <div class="lob-status" id="lob-status">في انتظار اللاعبين…</div>
-</div>
-
-<!-- GAME -->
-<div class="screen" id="game">
-  <canvas id="arena"></canvas>
+<!-- ═══ GAME ═══ -->
+<div id="gameScreen" class="screen">
   <div id="hud">
-    <div class="hteam">
-      <div class="hlbl" style="color:var(--red)">🔴 أحمر</div>
-      <div class="hbar-w"><div class="hbar r" id="hbar-r" style="width:100%"></div></div>
-      <div class="hscore r" id="hscore-r">0</div>
+    <div class="hside">
+      <div class="htn" style="color:var(--red)">● الأحمر</div>
+      <div class="hbullets r" id="hRB">1000</div>
+      <div class="hwbar" id="hRW"></div>
     </div>
-    <div class="hcenter">
-      <div class="rlbl" id="rlbl">جولة 1/3</div>
-      <div class="myrole" id="myrole">—</div>
+    <div class="hctr">
+      <div class="hround" id="hRound">جولة 1 / 3</div>
+      <div class="hscore"><span class="rs" id="hRS">0</span><span class="sp">—</span><span class="bs" id="hBS">0</span></div>
+      <div id="hTimer" style="font-family:'Rajdhani',sans-serif;font-size:.85rem;color:#333;margin-top:1px;"></div>
     </div>
-    <div class="hteam bl">
-      <div class="hlbl" style="color:var(--blue)">أزرق 🔵</div>
-      <div class="hbar-w"><div class="hbar b" id="hbar-b" style="width:100%"></div></div>
-      <div class="hscore b" id="hscore-b">0</div>
+    <div class="hside hr">
+      <div class="htn" style="color:var(--blue)">الأزرق ●</div>
+      <div class="hbullets b" id="hBB">1000</div>
+      <div class="hwbar" id="hBW" style="flex-direction:row-reverse;"></div>
     </div>
   </div>
-  <div id="touch-hint">← اسحب يمين أو شمال →</div>
+  <div id="timerBar"><div id="timerFill"></div></div>
 
-  <div id="round-end">
-    <div class="oe-title" id="re-title">نهاية الجولة</div>
-    <div class="oe-scores">
-      <div class="oe-s"><div class="ov" style="color:var(--red)"  id="re-r">0</div><div class="ol">أحمر</div></div>
-      <div style="opacity:.2;font-size:24px">|</div>
-      <div class="oe-s"><div class="ov" style="color:var(--blue)" id="re-b">0</div><div class="ol">أزرق</div></div>
-    </div>
-    <div class="oe-cd" id="re-cd">3</div>
+  <canvas id="gameCanvas"></canvas>
+  <canvas id="particleCanvas"></canvas>
+  <div id="touchIndicator"></div>
+  <div id="flash"></div>
+  <div id="netDot"></div>
+  <div id="roleBadge"></div>
+  <div id="ctrlHint"></div>
+
+  <div id="roundOverlay">
+    <div class="ro-lbl" id="roLbl">جولة 1</div>
+    <div class="ro-big w" id="roBig">استعد!</div>
+    <div class="ro-sub" id="roSub"></div>
   </div>
+</div>
 
-  <div id="win-screen">
-    <div class="oe-title" id="win-title">🏆</div>
-    <div class="ws-scores">
-      <div class="wss r"><div class="wv" style="color:var(--red)"  id="w-r">0</div><div class="wl">🔴 أحمر</div></div>
-      <div class="wss b"><div class="wv" style="color:var(--blue)" id="w-b">0</div><div class="wl">🔵 أزرق</div></div>
-    </div>
-    <button class="gbtn-gold" onclick="location.reload()">🔄 العب مجدداً</button>
+<!-- ═══ GAME OVER ═══ -->
+<div id="gameOverScreen" class="screen">
+  <div class="bg-grid"></div>
+  <div class="go-win" id="goWin">🏆 الفريق الأحمر</div>
+  <div class="go-sc" id="goSc">2 — 1</div>
+  <div class="go-rounds" id="goRounds"></div>
+  <div style="display:flex;gap:.55rem;margin-top:1rem;">
+    <button class="mbtn r" onclick="restartGame()" style="min-width:160px;font-size:.95rem;padding:.75rem 1.3rem;">🔄 مجدداً</button>
+    <button class="mbtn b" onclick="showMenu()" style="min-width:160px;font-size:.95rem;padding:.75rem 1.3rem;">🏠 القائمة</button>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════
-//  CONSTANTS
-// ══════════════════════════════════════════════
-const ABLY_KEY  = 'UcDcBw.YJJl6g:LDwkET05nlae7VeirAz44uL8hE16cLZ8MyrSFwCnolk';
-const SLOTS     = ['r0','r1','b0','b1'];
-const MAX_HITS  = 250;
-const ROUNDS    = 3;
-const BSPD      = 9;
-const FIRE_MS   = 95;
-const WALL_H    = 28;
-const SHIELD_W  = 130;
-const SHIELD_H  = 16;
-const BR        = 4;
+// ══════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════
+const SETTINGS = {
+  timerEnabled: true,
+  timer:   40,    // seconds
+  bullets: 1000,
+  rounds:  3,
+};
 
-// ══════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════
-const myId = Math.random().toString(36).substr(2,8);
-let mySlot  = null;
-let roomCode= null;
-let amIRdy  = false;
+const LIMITS = {
+  timer:   { min:10, max:180, step:5 },
+  bullets: { min:100,max:5000,step:100 },
+  rounds:  { min:1,  max:9,  step:1 },
+};
 
-let ablyClient = null;
-let ablyCh     = null;
+function showSettings() { showScreen('settingsScreen'); refreshSettingsUI(); }
 
-let lobSlots = {r0:null, r1:null, b0:null, b1:null};
-let lobRdy   = {r0:false, r1:false, b0:false, b1:false};
-
-let round   = 1;
-let totals  = {red:0, blue:0};
-let wallHP  = {red:MAX_HITS, blue:MAX_HITS};
-let rndHits = {red:0, blue:0};
-
-let gx = {r0:0.5, b0:0.5};
-let sx = {r1:0.5, b1:0.5};
-
-let bullets=[], sparks=[];
-let gameOn=false, rndEnd=false, looping=false;
-let fireTid=null, lastSend=0, touchLast=0;
-let W=0, H=0;
-
-// ══════════════════════════════════════════════
-//  UTILS
-// ══════════════════════════════════════════════
-function genCode(){
-  return Math.random().toString(36).substr(2,5).toUpperCase();
+function refreshSettingsUI() {
+  document.getElementById('timerEnabled').checked = SETTINGS.timerEnabled;
+  document.getElementById('timerVal').textContent  = SETTINGS.timer;
+  document.getElementById('timerSec').textContent  = SETTINGS.timer + ' ثانية';
+  document.getElementById('bulletsVal').textContent = SETTINGS.bullets;
+  document.getElementById('roundsVal').textContent  = SETTINGS.rounds;
+  document.getElementById('timerValueRow').style.opacity = SETTINGS.timerEnabled ? '1' : '.35';
+  document.getElementById('timerValueRow').style.pointerEvents = SETTINGS.timerEnabled ? '' : 'none';
 }
 
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+document.getElementById('timerEnabled').addEventListener('change', function() {
+  SETTINGS.timerEnabled = this.checked;
+  refreshSettingsUI();
+});
+
+function adjSetting(key, delta) {
+  const lim = LIMITS[key];
+  SETTINGS[key] = Math.max(lim.min, Math.min(lim.max, SETTINGS[key] + delta));
+  refreshSettingsUI();
+}
+
+// ══════════════════════════════════════════════════════
+//  CANVAS
+// ══════════════════════════════════════════════════════
+const canvas  = document.getElementById('gameCanvas');
+const ctx     = canvas.getContext('2d');
+const pCanvas = document.getElementById('particleCanvas');
+const pCtx    = pCanvas.getContext('2d');
+
+let W = 400, H = 700;
+
+function resize() {
+  const mw = Math.min(window.innerWidth, 460);
+  const mh = window.innerHeight;
+  if (mw / (9/16) <= mh) { W = mw; H = mw / (9/16); }
+  else { H = mh; W = mh * (9/16); }
+  canvas.width = W; canvas.height = H;
+  pCanvas.width = W; pCanvas.height = H;
+}
+resize();
+
+function syncPCanvas() {
+  const r = canvas.getBoundingClientRect();
+  pCanvas.style.left   = r.left   + 'px';
+  pCanvas.style.top    = r.top    + 'px';
+  pCanvas.style.width  = r.width  + 'px';
+  pCanvas.style.height = r.height + 'px';
+}
+
+// ══════════════════════════════════════════════════════
+//  GAME CONSTANTS  (recalculated each frame)
+// ══════════════════════════════════════════════════════
+const C = () => ({
+  WY_BLUE  : H * .050,   // blue wall top Y
+  WY_RED   : H * .870,   // red  wall top Y
+  W_H      : H * .055,   // wall height
+  W_W      : W * .92,
+  W_X      : W * .04,
+  DIV_Y    : H * .50,    // divider
+  // Positions (all in own-team zone):
+  SH_RED_Y : H * .820,   // red shield  — lower half, above red wall
+  SH_BLU_Y : H * .180,   // blue shield — upper half, below blue wall
+  SR_Y     : H * .680,   // red shooter — lower half
+  SB_Y     : H * .320,   // blue shooter — upper half
+  // Sizes
+  SH_W   : W * .20,
+  SH_H   : H * .018,
+  SH_SPD : W * .014,
+  SHT_W  : W * .055,
+  SHT_H  : W * .080,
+  SHT_SPD: W * .011,
+  BUL_W  : W * .013,
+  BUL_H  : H * .022,
+  BUL_SPD: H * .014,
+  SEGS   : 20,
+  FIRE_RATE: 5,   // frames between shots
+});
+
+// ══════════════════════════════════════════════════════
+//  INPUT
+// ══════════════════════════════════════════════════════
+const INPUT = {
+  left:    false,
+  right:   false,
+  firing:  false,   // true while finger is on screen
+  touchX:  null,    // last touch X for direction detection
+};
+
+// KEYBOARD
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowLeft'  || e.key==='a' || e.key==='A') { INPUT.left=true;  INPUT.firing=true;  e.preventDefault(); }
+  if (e.key==='ArrowRight' || e.key==='d' || e.key==='D') { INPUT.right=true; INPUT.firing=true;  e.preventDefault(); }
+});
+document.addEventListener('keyup', e => {
+  if (e.key==='ArrowLeft'  || e.key==='a' || e.key==='A') INPUT.left=false;
+  if (e.key==='ArrowRight' || e.key==='d' || e.key==='D') INPUT.right=false;
+  if (!INPUT.left && !INPUT.right) INPUT.firing = false;
+});
+
+// TOUCH — drag on canvas = move; lift = stop firing
+function setupTouchControls() {
+  const gs = document.getElementById('gameScreen');
+
+  // Remove old listeners by cloning (safest way)
+  const newGs = gs.cloneNode(true);
+  // But we can't clone and re-attach canvas events easily — use a flag approach instead
+  // Use named functions registered once
+  gs.addEventListener('touchstart',  onTouchStart,  { passive:false });
+  gs.addEventListener('touchmove',   onTouchMove,   { passive:false });
+  gs.addEventListener('touchend',    onTouchEnd,    { passive:false });
+  gs.addEventListener('touchcancel', onTouchEnd,    { passive:false });
+}
+
+const DEAD_ZONE = 8; // px — minimum drag before direction registers
+
+function onTouchStart(e) {
+  e.preventDefault();
+  const t = e.touches[0];
+  INPUT.touchX  = t.clientX;
+  INPUT.firing  = true;
+  INPUT.left    = false;
+  INPUT.right   = false;
+  showTouchRipple(t.clientX, t.clientY);
+}
+
+function onTouchMove(e) {
+  e.preventDefault();
+  if (!e.touches.length) return;
+  const t = e.touches[0];
+  if (INPUT.touchX === null) { INPUT.touchX = t.clientX; return; }
+  const dx = t.clientX - INPUT.touchX;
+  if (Math.abs(dx) > DEAD_ZONE) {
+    INPUT.left  = dx < 0;
+    INPUT.right = dx > 0;
+    INPUT.touchX = t.clientX; // continuous drag — update reference
+  }
+}
+
+function onTouchEnd(e) {
+  e.preventDefault();
+  INPUT.left   = false;
+  INPUT.right  = false;
+  INPUT.firing = false;
+  INPUT.touchX = null;
+}
+
+// Visual ripple on touch
+function showTouchRipple(cx, cy) {
+  const ind = document.getElementById('touchIndicator');
+  const r = document.createElement('div');
+  r.style.cssText = `position:absolute;left:${cx}px;top:${cy}px;width:0;height:0;
+    border-radius:50%;background:rgba(255,255,255,0.15);transform:translate(-50%,-50%);
+    pointer-events:none;animation:ripple .5s ease-out forwards;`;
+  ind.appendChild(r);
+  setTimeout(() => r.remove(), 520);
+}
+
+// Add ripple keyframe dynamically
+const rippleStyle = document.createElement('style');
+rippleStyle.textContent = `@keyframes ripple{0%{width:0;height:0;opacity:.5}100%{width:90px;height:90px;opacity:0}}`;
+document.head.appendChild(rippleStyle);
+
+// ══════════════════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════════════════
+let GS   = null;
+let anim = null;
+let last = 0;
+let gameMode = 'offline';
+let myRole   = 'redShooter';
+let isOnline = false;
+let stRed = 0, stBlue = 0;
+
+// Screen helper
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
+function showMenu() { stopGame(); showScreen('menuScreen'); }
+function showLobby() { showScreen('lobbyScreen'); }
 
-// ══════════════════════════════════════════════
-//  HOME ACTIONS
-// ══════════════════════════════════════════════
-function createRoom(){
-  const code = genCode();
-  enterRoom(code);
+// Role select
+let chosenRole = null;
+function showRoleSelect() {
+  chosenRole = null;
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('roleHint').textContent = 'اختر دورك — الكمبيوتر يتولى الباقي';
+  document.querySelectorAll('.rcard').forEach(c => c.classList.remove('sel'));
+  showScreen('roleScreen');
+}
+function pickRole(card) {
+  document.querySelectorAll('.rcard').forEach(c => c.classList.remove('sel'));
+  card.classList.add('sel');
+  chosenRole = card.dataset.role;
+  document.getElementById('startBtn').disabled = false;
+  const hints = {
+    redShooter:  'سحب يمين/شمال = تحرك | إصبعك على الشاشة = نار',
+    redShield:   'سحب يمين/شمال = تحريك الدرع',
+    blueShooter: 'سحب يمين/شمال = تحرك | إصبعك على الشاشة = نار',
+    blueShield:  'سحب يمين/شمال = تحريك الدرع',
+  };
+  document.getElementById('roleHint').textContent = hints[chosenRole] || '';
 }
 
-function doJoin(){
-  const v = document.getElementById('jinput').value.trim().toUpperCase();
-  if(v.length < 4){ alert('اكتب الكود كامل'); return; }
-  enterRoom(v);
+// ══════════════════════════════════════════════════════
+//  OFFLINE START
+// ══════════════════════════════════════════════════════
+function startOffline() {
+  if (!chosenRole) return;
+  gameMode = 'offline'; isOnline = false; myRole = chosenRole;
+  INPUT.left = INPUT.right = INPUT.firing = false;
+  resize();
+  initGame();
+  showScreen('gameScreen');
+  setupTouchControls();
+  syncPCanvas();
+  updateHintLabel();
+  document.getElementById('roleBadge').textContent = roleLabel(myRole);
+  showRO(1, 'استعد!', '', () => beginRound());
 }
 
-function copyRoomCode(){
-  if(!roomCode) return;
-  navigator.clipboard?.writeText(roomCode).catch(()=>{});
-  const b = document.getElementById('copy-btn');
-  b.textContent='✅ تم!'; b.classList.add('ok');
-  setTimeout(()=>{ b.textContent='نسخ 📋'; b.classList.remove('ok'); }, 1600);
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+function initGame() {
+  const c = C();
+  GS = {
+    round: 1, redScore: 0, blueScore: 0,
+    roundLog: [], running: false,
+    timer: SETTINGS.timer, timerAcc: 0,
+    bullets: [], particles: [],
+
+    red: {
+      shooter: { x: W*.35, y: c.SR_Y  },
+      shield:  { x: W*.35, y: c.SH_RED_Y },
+      wall: Array(c.SEGS).fill(1),
+      bullets: SETTINGS.bullets, hits: 0,
+    },
+    blue: {
+      shooter: { x: W*.65, y: c.SB_Y  },
+      shield:  { x: W*.55, y: c.SH_BLU_Y },
+      wall: Array(c.SEGS).fill(1),
+      bullets: SETTINGS.bullets, hits: 0,
+    },
+
+    ai: { rDir:1, rT:0, bDir:-1, bT:0 },
+  };
+  rebuildHudWalls();
+  updateHUD();
 }
 
-// ══════════════════════════════════════════════
-//  ABLY — CONNECTION
-// ══════════════════════════════════════════════
-function enterRoom(code){
-  roomCode = code;
-  // reset lobby state
-  lobSlots = {r0:null, r1:null, b0:null, b1:null};
-  lobRdy   = {r0:false, r1:false, b0:false, b1:false};
-  mySlot   = null;
-  amIRdy   = false;
+function beginRound() {
+  const c = C();
+  if (!GS) return;
+  stRed = stBlue = 0;
+  GS.running  = true;
+  GS.timer    = SETTINGS.timer;
+  GS.timerAcc = 0;
+  GS.bullets  = [];
+  GS.particles= [];
 
-  if(ablyClient){
-    // disconnect cleanly then reconnect
-    const old = ablyClient;
-    ablyClient = null;
-    ablyCh = null;
-    old.connection.once('closed', ()=> ablyConnect(code));
-    old.close();
-  } else {
-    ablyConnect(code);
+  GS.red.shooter  = { x:W*.35, y:c.SR_Y  };
+  GS.red.shield   = { x:W*.35, y:c.SH_RED_Y };
+  GS.blue.shooter = { x:W*.65, y:c.SB_Y  };
+  GS.blue.shield  = { x:W*.55, y:c.SH_BLU_Y };
+  GS.red.bullets  = SETTINGS.bullets; GS.red.hits  = 0;
+  GS.blue.bullets = SETTINGS.bullets; GS.blue.hits = 0;
+  GS.red.wall     = Array(c.SEGS).fill(1);
+  GS.blue.wall    = Array(c.SEGS).fill(1);
+
+  rebuildHudWalls();
+  if (anim) cancelAnimationFrame(anim);
+  last = performance.now();
+  anim = requestAnimationFrame(loop);
+}
+
+// ══════════════════════════════════════════════════════
+//  LOOP
+// ══════════════════════════════════════════════════════
+function loop(ts) {
+  anim = requestAnimationFrame(loop);
+  const dt = Math.min((ts - last) / 16.667, 3);
+  last = ts;
+  if (!GS || !GS.running) return;
+  const c = C();
+
+  // Timer
+  if (SETTINGS.timerEnabled) {
+    GS.timerAcc += dt;
+    while (GS.timerAcc >= 60) { GS.timerAcc -= 60; GS.timer--; }
+    if (GS.timer <= 0) { endRound('timer'); return; }
   }
-}
 
-function ablyConnect(code){
-  if(ablyClient) return; // guard double calls
-
-  ablyClient = new Ably.Realtime({
-    key: ABLY_KEY,
-    clientId: myId,
-    closeOnUnload: true,
-  });
-
-  ablyClient.connection.on('connected', ()=>{
-    console.log('Ably connected ✅');
-    ablyCh = ablyClient.channels.get('bzone-' + code);
-
-    // subscribe to all messages
-    ablyCh.subscribe('msg', msg => onMsg(msg.data));
-
-    // subscribe to presence changes
-    ablyCh.presence.subscribe(() => syncPresence());
-
-    // assign slot immediately — no need to wait
-    const taken = [];  // first check via presence.get
-    ablyCh.presence.get((err2, members) => {
-      const taken = (members||[])
-        .filter(m => m.clientId !== myId && m.data && m.data.slot)
-        .map(m => m.data.slot);
-
-      const free = SLOTS.find(s => !taken.includes(s)) || SLOTS[0];
-      mySlot = free;
-
-      // enter presence with our slot
-      ablyCh.presence.enter({ slot: mySlot, rdy: false });
-
-      // show lobby
-      document.getElementById('room-code-display').textContent = code;
-      showScreen('lobby');
-
-      syncPresence();
-      pub({ t:'hello', slot: mySlot });
-    });
-  });
-
-  ablyClient.connection.on('failed', state => {
-    alert('فشل الاتصال بـ Ably ❌\n' + (state?.reason?.message || ''));
-  });
-
-  ablyClient.connection.on('disconnected', () => {
-    console.warn('Ably: disconnected');
-  });
-}
-
-// ══════════════════════════════════════════════
-//  ABLY — PRESENCE SYNC
-// ══════════════════════════════════════════════
-function syncPresence(){
-  if(!ablyCh) return;
-  ablyCh.presence.get((err, members) => {
-    if(err) return;
-    lobSlots = {r0:null, r1:null, b0:null, b1:null};
-    lobRdy   = {r0:false, r1:false, b0:false, b1:false};
-    members.forEach(m => {
-      const slot = m.data?.slot;
-      if(slot && SLOTS.includes(slot)){
-        lobSlots[slot] = m.clientId;
-        lobRdy[slot]   = !!m.data.rdy;
-      }
-    });
-    renderLobby();
-    checkAllRdy();
-  });
-}
-
-// ══════════════════════════════════════════════
-//  ABLY — PUBLISH & RECEIVE
-// ══════════════════════════════════════════════
-function pub(obj){
-  if(ablyCh) ablyCh.publish('msg', obj);
-}
-
-function onMsg(m){
-  if(!m || !m.t) return;
-  switch(m.t){
-
-    case 'hello':
-      // someone joined — send them our current state
-      if(m.slot !== mySlot && mySlot){
-        pub({ t:'state', slot: mySlot, rdy: amIRdy });
-      }
-      syncPresence();
-      break;
-
-    case 'state':
-      // update their slot/rdy
-      if(m.slot && SLOTS.includes(m.slot)){
-        lobSlots[m.slot] = m.clientId || lobSlots[m.slot];
-        lobRdy[m.slot]   = !!m.rdy;
-        renderLobby();
-        checkAllRdy();
-      }
-      break;
-
-    case 'rdy':
-      if(m.clientId === myId) break;
-      lobRdy[m.slot] = m.v;
-      renderLobby();
-      checkAllRdy();
-      break;
-
-    case 'swap':
-      lobSlots[m.to]  = m.fid;
-      lobSlots[m.fr]  = m.tid || null;
-      lobRdy[m.to]    = false;
-      lobRdy[m.fr]    = false;
-      if(mySlot === m.to && m.fid !== myId) mySlot = m.fr;
-      renderLobby();
-      break;
-
-    case 'start':
-      round   = m.round || 1;
-      rndHits = {red:0, blue:0};
-      if(round === 1) totals = {red:0, blue:0};
-      wallHP  = {red:MAX_HITS, blue:MAX_HITS};
-      startRound();
-      break;
-
-    case 'pos':
-      if(m.slot === mySlot) break;
-      if(m.slot==='r0'||m.slot==='b0') gx[m.slot]=m.x;
-      else sx[m.slot]=m.x;
-      break;
-
-    case 'bul':
-      if(!m.id?.startsWith(myId))
-        bullets.push({...m, life:1, mine:false});
-      break;
-
-    case 'hit':
-      wallHP[m.tm]    = m.hp;
-      rndHits[m.tk]   = m.rh;
-      totals[m.tk]    = m.ts;
-      updHUD();
-      if(m.hp <= 0) endRound(m.tk);
-      break;
-
-    case 'nxt':
-      round   = m.round;
-      rndHits = {red:0, blue:0};
-      wallHP  = {red:MAX_HITS, blue:MAX_HITS};
-      startRound();
-      break;
-
-    case 'over':
-      showWin(m);
-      break;
+  // Check bullet exhaustion (both teams ran out)
+  if (GS.red.bullets <= 0 && GS.blue.bullets <= 0 && GS.bullets.length === 0) {
+    endRound('bullets'); return;
   }
+
+  playerInput(dt, c);
+  if (!isOnline) aiTick(dt, c);
+  moveBullets(dt, c);
+  moveParticles(dt);
+  drawGame(c);
+  drawParticles();
+  updateHUD();
+  updateTimerBar(c);
 }
 
-window.addEventListener('beforeunload', ()=>{
-  if(ablyClient) ablyClient.close();
-});
+// ══════════════════════════════════════════════════════
+//  PLAYER INPUT
+// ══════════════════════════════════════════════════════
+function playerInput(dt, c) {
+  const isShooter = myRole === 'redShooter' || myRole === 'blueShooter';
+  const team = myRole.startsWith('red') ? 'red' : 'blue';
 
-// ══════════════════════════════════════════════
-//  LOBBY UI
-// ══════════════════════════════════════════════
-function renderLobby(){
-  SLOTS.forEach(s => {
-    const card  = document.getElementById('card-' + s);
-    const pid   = lobSlots[s];
-    const rdy   = lobRdy[s];
-    const isGun = s==='r0' || s==='b0';
+  if (isShooter) {
+    const s = GS[team].shooter;
+    if (INPUT.left)  s.x = Math.max(c.W_X + c.SHT_W/2,         s.x - c.SHT_SPD * dt);
+    if (INPUT.right) s.x = Math.min(c.W_X + c.W_W - c.SHT_W/2, s.x + c.SHT_SPD * dt);
 
-    card.querySelector('.picon').textContent = isGun ? '🔫' : '🛡️';
-    card.querySelector('.pname').textContent = isGun ? 'رشاش' : 'درع';
-    card.querySelector('.psub').textContent  = '';
-    card.classList.remove('empty','mine','rdy');
-
-    if(pid){
-      if(pid === myId){
-        card.classList.add('mine');
-        card.querySelector('.psub').textContent = 'أنت';
-      } else {
-        card.querySelector('.psub').textContent = 'لاعب';
-      }
-      if(rdy) card.classList.add('rdy');
+    // Fire ONLY while touching/pressing
+    if (INPUT.firing && GS[team].bullets > 0) {
+      if (team === 'red')  { stRed++;  if (stRed  >= c.FIRE_RATE) { stRed  = 0; fireBullet('red',  s.x, s.y, c); } }
+      else                 { stBlue++; if (stBlue >= c.FIRE_RATE) { stBlue = 0; fireBullet('blue', s.x, s.y, c); } }
     } else {
-      card.classList.add('empty');
+      // Reset shoot timer when not firing so next press fires immediately
+      if (team === 'red') stRed = 0; else stBlue = 0;
+    }
+  } else {
+    // Shield player
+    const sh = GS[team].shield;
+    if (INPUT.left)  sh.x = Math.max(c.W_X,             sh.x - c.SH_SPD * dt);
+    if (INPUT.right) sh.x = Math.min(c.W_X + c.W_W - c.SH_W, sh.x + c.SH_SPD * dt);
+  }
+
+  if (isOnline) broadcastOnline();
+}
+
+// ══════════════════════════════════════════════════════
+//  AI
+// ══════════════════════════════════════════════════════
+function aiTick(dt, c) {
+  const ai = GS.ai;
+
+  // Red shooter (AI)
+  if (myRole !== 'redShooter') {
+    const s = GS.red.shooter;
+    ai.rT -= dt;
+    if (ai.rT <= 0) { ai.rDir = -ai.rDir; ai.rT = 35 + Math.random()*50; }
+    s.x = Math.max(c.W_X+c.SHT_W/2, Math.min(c.W_X+c.W_W-c.SHT_W/2, s.x + ai.rDir*c.SHT_SPD*.75*dt));
+    stRed++; if (stRed >= c.FIRE_RATE+2) { stRed=0; fireBullet('red', s.x, s.y, c); }
+  }
+
+  // Blue shooter (AI)
+  if (myRole !== 'blueShooter') {
+    const s = GS.blue.shooter;
+    ai.bT -= dt;
+    if (ai.bT <= 0) { ai.bDir = -ai.bDir; ai.bT = 30 + Math.random()*55; }
+    s.x = Math.max(c.W_X+c.SHT_W/2, Math.min(c.W_X+c.W_W-c.SHT_W/2, s.x + ai.bDir*c.SHT_SPD*.75*dt));
+    stBlue++; if (stBlue >= c.FIRE_RATE+2) { stBlue=0; fireBullet('blue', s.x, s.y, c); }
+  }
+
+  // Red shield (AI) — tracks blue bullets going DOWN in lower half
+  if (myRole !== 'redShield') {
+    const sh = GS.red.shield;
+    const threats = GS.bullets.filter(b => b.team==='blue' && b.y > c.DIV_Y && b.y < c.WY_RED);
+    if (threats.length) {
+      const t = threats.reduce((a,b) => Math.abs(b.y-sh.y)<Math.abs(a.y-sh.y) ? b : a);
+      const tx = t.x - c.SH_W/2;
+      sh.x += Math.sign(tx-sh.x) * Math.min(c.SH_SPD*.88*dt, Math.abs(tx-sh.x));
+    } else {
+      sh.x += (W/2 - c.SH_W/2 - sh.x) * .025 * dt;
+    }
+    sh.x = Math.max(c.W_X, Math.min(c.W_X+c.W_W-c.SH_W, sh.x));
+  }
+
+  // Blue shield (AI) — tracks red bullets going UP in upper half
+  if (myRole !== 'blueShield') {
+    const sh = GS.blue.shield;
+    const threats = GS.bullets.filter(b => b.team==='red' && b.y < c.DIV_Y && b.y > c.WY_BLUE);
+    if (threats.length) {
+      const t = threats.reduce((a,b) => Math.abs(b.y-sh.y)<Math.abs(a.y-sh.y) ? b : a);
+      const tx = t.x - c.SH_W/2;
+      sh.x += Math.sign(tx-sh.x) * Math.min(c.SH_SPD*.88*dt, Math.abs(tx-sh.x));
+    } else {
+      sh.x += (W/2 - c.SH_W/2 - sh.x) * .025 * dt;
+    }
+    sh.x = Math.max(c.W_X, Math.min(c.W_X+c.W_W-c.SH_W, sh.x));
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  BULLETS
+// ══════════════════════════════════════════════════════
+function fireBullet(team, x, y, c) {
+  if (GS[team].bullets <= 0) return;
+  GS[team].bullets--;
+  const vy = team==='red' ? -c.BUL_SPD : c.BUL_SPD;
+  const vx = (Math.random()-.5) * .35;
+  GS.bullets.push({ team, x, y, vx, vy });
+}
+
+function moveBullets(dt, c) {
+  const dead = new Set();
+  for (let i = 0; i < GS.bullets.length; i++) {
+    const b = GS.bullets[i];
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+
+    if (b.team === 'red') {
+      // RED bullet goes UP → BLUE shield (upper half) blocks it
+      const sh = GS.blue.shield;
+      if (b.y <= sh.y + c.SH_H*2 && b.y >= sh.y - c.SH_H*2 &&
+          b.x >= sh.x && b.x <= sh.x + c.SH_W) {
+        burst(b.x, sh.y, '#00C8FF', 10); flash('rgba(0,200,255,.1)');
+        dead.add(i); continue;
+      }
+      // Hits BLUE wall (top)
+      if (b.y <= c.WY_BLUE + c.W_H && b.y >= c.WY_BLUE - 4) {
+        hitWall('blue', b.x, c);
+        burst(b.x, c.WY_BLUE + c.W_H/2, '#FF1A2E', 14);
+        dead.add(i); continue;
+      }
+    } else {
+      // BLUE bullet goes DOWN → RED shield (lower half) blocks it
+      const sh = GS.red.shield;
+      if (b.y >= sh.y - c.SH_H*2 && b.y <= sh.y + c.SH_H*2 &&
+          b.x >= sh.x && b.x <= sh.x + c.SH_W) {
+        burst(b.x, sh.y, '#FF1A2E', 10); flash('rgba(255,26,46,.1)');
+        dead.add(i); continue;
+      }
+      // Hits RED wall (bottom)
+      if (b.y >= c.WY_RED - 4 && b.y <= c.WY_RED + c.W_H) {
+        hitWall('red', b.x, c);
+        burst(b.x, c.WY_RED + c.W_H/2, '#00C8FF', 14);
+        dead.add(i); continue;
+      }
+    }
+
+    if (b.y < -30 || b.y > H+30) dead.add(i);
+  }
+  GS.bullets = GS.bullets.filter((_,i) => !dead.has(i));
+}
+
+function hitWall(team, bx, c) {
+  const seg = Math.floor((bx - c.W_X) / (c.W_W / c.SEGS));
+  if (seg < 0 || seg >= c.SEGS || GS[team].wall[seg] <= 0) return;
+  GS[team].wall[seg] = Math.max(0, GS[team].wall[seg] - .12);
+  const atk = team==='red' ? 'blue' : 'red';
+  GS[atk].hits++;
+}
+
+// ══════════════════════════════════════════════════════
+//  PARTICLES & FX
+// ══════════════════════════════════════════════════════
+function burst(x, y, col, n) {
+  for (let i=0;i<n;i++) {
+    const a=Math.random()*Math.PI*2, sp=1.5+Math.random()*4;
+    GS.particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,col,life:1,decay:.04+Math.random()*.05,r:1.5+Math.random()*3});
+  }
+}
+function moveParticles(dt) {
+  GS.particles = GS.particles.filter(p => {
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=.12*dt; p.life-=p.decay*dt; return p.life>0;
+  });
+}
+function drawParticles() {
+  pCtx.clearRect(0,0,W,H);
+  for (const p of GS.particles) {
+    pCtx.globalAlpha = p.life*p.life;
+    pCtx.fillStyle = p.col;
+    pCtx.beginPath(); pCtx.arc(p.x,p.y,p.r,0,Math.PI*2); pCtx.fill();
+  }
+  pCtx.globalAlpha = 1;
+}
+
+let flashTO = null;
+function flash(col) {
+  const f = document.getElementById('flash');
+  f.style.background=col; f.style.opacity='1';
+  if(flashTO) clearTimeout(flashTO);
+  flashTO = setTimeout(()=>f.style.opacity='0', 65);
+}
+
+// ══════════════════════════════════════════════════════
+//  DRAW
+// ══════════════════════════════════════════════════════
+function drawGame(c) {
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#07070e'; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,.018)'; ctx.lineWidth=1;
+  for(let x=c.W_X;x<=c.W_X+c.W_W;x+=c.W_W/11){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<=H;y+=H/18){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Territory glow
+  const gB=ctx.createLinearGradient(0,0,0,c.DIV_Y);
+  gB.addColorStop(0,'rgba(0,200,255,.07)'); gB.addColorStop(1,'transparent');
+  ctx.fillStyle=gB; ctx.fillRect(0,0,W,c.DIV_Y);
+  const gR=ctx.createLinearGradient(0,c.DIV_Y,0,H);
+  gR.addColorStop(0,'transparent'); gR.addColorStop(1,'rgba(255,26,46,.07)');
+  ctx.fillStyle=gR; ctx.fillRect(0,c.DIV_Y,W,H-c.DIV_Y);
+
+  // Divider
+  ctx.save(); ctx.setLineDash([5,6]);
+  ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,c.DIV_Y); ctx.lineTo(W,c.DIV_Y); ctx.stroke();
+  ctx.restore();
+
+  // Zone labels
+  ctx.font=`bold ${W*.026}px Rajdhani`; ctx.textAlign='right';
+  ctx.fillStyle='rgba(0,200,255,.12)'; ctx.fillText('BLUE',W-c.W_X,c.DIV_Y-7);
+  ctx.fillStyle='rgba(255,26,46,.12)'; ctx.fillText('RED',W-c.W_X,c.DIV_Y+17);
+
+  drawWall(c,'blue',c.WY_BLUE);
+  drawWall(c,'red', c.WY_RED);
+  drawShield(c,'red');
+  drawShield(c,'blue');
+  drawShooter(c,'red');
+  drawShooter(c,'blue');
+  drawBullets(c);
+
+  // Hit counters on wall ends
+  ctx.textAlign='left'; ctx.font=`bold ${W*.038}px Rajdhani`;
+  ctx.fillStyle='rgba(0,200,255,.45)';
+  ctx.fillText(GS.blue.hits, c.W_X+c.W_W+4, c.WY_BLUE+c.W_H*.8);
+  ctx.fillStyle='rgba(255,26,46,.45)';
+  ctx.fillText(GS.red.hits, c.W_X+c.W_W+4, c.WY_RED+c.W_H*.8);
+}
+
+function drawWall(c, team, wy) {
+  const wall = GS[team].wall;
+  const sw = c.W_W / c.SEGS;
+  const [r,g,b2] = team==='red' ? [255,26,46] : [0,200,255];
+  for (let i=0;i<c.SEGS;i++) {
+    const hp = wall[i]; if (hp<=0) continue;
+    const x = c.W_X + i*sw;
+    if (hp>.4) { ctx.shadowBlur=7*hp; ctx.shadowColor=`rgb(${r},${g},${b2})`; }
+    ctx.fillStyle=`rgba(${r},${g},${b2},${.25+hp*.72})`;
+    ctx.fillRect(x+1,wy,sw-2,c.W_H);
+    ctx.fillStyle=`rgba(255,255,255,${hp*.14})`;
+    ctx.fillRect(x+1,wy,sw-2,c.W_H*.28);
+    ctx.fillStyle=`rgba(0,0,0,.28)`;
+    ctx.fillRect(x+1,wy+c.W_H*.72,sw-2,c.W_H*.28);
+    // Cracks
+    if (hp<.65) {
+      ctx.save(); ctx.globalAlpha=(1-hp)*.55; ctx.strokeStyle='#000'; ctx.lineWidth=1;
+      const seed=i*137.5;
+      ctx.beginPath(); ctx.moveTo(x+sw*.35,wy); ctx.lineTo(x+sw*.35+Math.sin(seed)*3,wy+c.W_H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+sw*.7,wy); ctx.lineTo(x+sw*.7-Math.cos(seed)*2,wy+c.W_H); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.shadowBlur=0;
+  }
+}
+
+function drawShield(c, team) {
+  const sh = GS[team].shield;
+  const [r,g,b2] = team==='red' ? [255,26,46] : [0,200,255];
+  const glow = team==='red' ? 'rgba(255,26,46,.65)' : 'rgba(0,200,255,.65)';
+  ctx.shadowBlur=14; ctx.shadowColor=glow;
+  const gr=ctx.createLinearGradient(sh.x,sh.y-c.SH_H/2,sh.x,sh.y+c.SH_H/2);
+  gr.addColorStop(0,`rgba(${r},${g},${b2},.92)`); gr.addColorStop(.5,`rgba(${r},${g},${b2},1)`); gr.addColorStop(1,`rgba(${r},${g},${b2},.6)`);
+  ctx.fillStyle=gr; ctx.fillRect(sh.x,sh.y-c.SH_H/2,c.SH_W,c.SH_H);
+  ctx.fillStyle='rgba(255,255,255,.3)'; ctx.fillRect(sh.x,sh.y-c.SH_H/2,c.SH_W,c.SH_H*.32);
+  ctx.strokeStyle=`rgba(${r},${g},${b2},.9)`; ctx.lineWidth=1.5; ctx.strokeRect(sh.x,sh.y-c.SH_H/2,c.SH_W,c.SH_H);
+  ctx.shadowBlur=0;
+  // Label
+  ctx.textAlign='center'; ctx.font=`bold ${W*.02}px Tajawal`; ctx.fillStyle=`rgba(${r},${g},${b2},.4)`;
+  const lblY = team==='red' ? sh.y-c.SH_H/2-4 : sh.y+c.SH_H/2+12;
+  ctx.fillText(team==='red'?'درع أحمر':'درع أزرق', sh.x+c.SH_W/2, lblY);
+}
+
+function drawShooter(c, team) {
+  const s = GS[team].shooter;
+  const [r,g,b2] = team==='red' ? [255,26,46] : [0,200,255];
+  const glow = team==='red' ? 'rgba(255,26,46,.75)' : 'rgba(0,200,255,.75)';
+  const hw=c.SHT_W/2, hh=c.SHT_H/2, fd=team==='red'?-1:1;
+  ctx.shadowBlur=16; ctx.shadowColor=glow;
+  const bg=ctx.createLinearGradient(s.x-hw,s.y-hh,s.x+hw,s.y+hh);
+  bg.addColorStop(0,`rgba(${r},${g},${b2},.95)`); bg.addColorStop(1,`rgba(${Math.round(r*.35)},${Math.round(g*.35)},${Math.round(b2*.35)},.8)`);
+  ctx.fillStyle=bg;
+  rr(ctx,s.x-hw*.65,s.y-hh,hw*1.3,hh*2,3); ctx.fill();
+  // Barrel
+  ctx.fillStyle=`rgba(${r},${g},${b2},.88)`;
+  ctx.fillRect(s.x-2.5, fd<0?s.y-hh-hh*1.1:s.y+hh, 5, hh*1.1);
+  // Head
+  ctx.shadowBlur=8; ctx.fillStyle='rgba(255,255,255,.88)';
+  ctx.beginPath(); ctx.arc(s.x,s.y-hh*.42,hw*.44,0,Math.PI*2); ctx.fill();
+  // Muzzle dot
+  ctx.fillStyle=`rgba(${r},${g},${b2},.55)`;
+  ctx.beginPath(); ctx.arc(s.x, fd<0?s.y-hh*2.2:s.y+hh*2.2, 3,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+}
+
+function drawBullets(c) {
+  for (const b of GS.bullets) {
+    const isr = b.team==='red';
+    const col  = isr?'#FF4455':'#44DDFF';
+    const glow = isr?'rgba(255,26,46,.9)':'rgba(0,200,255,.9)';
+    ctx.shadowBlur=9; ctx.shadowColor=glow;
+    ctx.fillStyle=col;
+    ctx.beginPath(); ctx.ellipse(b.x,b.y,c.BUL_W/2,c.BUL_H/2,0,0,Math.PI*2); ctx.fill();
+    // Trail
+    const tl=c.BUL_H*2.5, ty0=isr?b.y:b.y-tl;
+    const g2=ctx.createLinearGradient(b.x,ty0,b.x,ty0+tl);
+    if(isr){g2.addColorStop(0,'rgba(255,100,100,.55)');g2.addColorStop(1,'transparent');}
+    else   {g2.addColorStop(0,'transparent');           g2.addColorStop(1,'rgba(100,220,255,.55)');}
+    ctx.fillStyle=g2; ctx.fillRect(b.x-c.BUL_W/2,ty0,c.BUL_W,tl);
+    ctx.shadowBlur=0;
+  }
+}
+
+// roundRect helper (polyfill)
+function rr(ct,x,y,w,h,r2){
+  ct.beginPath();ct.moveTo(x+r2,y);ct.lineTo(x+w-r2,y);ct.quadraticCurveTo(x+w,y,x+w,y+r2);
+  ct.lineTo(x+w,y+h-r2);ct.quadraticCurveTo(x+w,y+h,x+w-r2,y+h);ct.lineTo(x+r2,y+h);
+  ct.quadraticCurveTo(x,y+h,x,y+h-r2);ct.lineTo(x,y+r2);ct.quadraticCurveTo(x,y,x+r2,y);ct.closePath();
+}
+
+// ══════════════════════════════════════════════════════
+//  HUD
+// ══════════════════════════════════════════════════════
+function updateHUD() {
+  if (!GS) return;
+  document.getElementById('hRB').textContent  = GS.red.bullets;
+  document.getElementById('hBB').textContent  = GS.blue.bullets;
+  document.getElementById('hRS').textContent  = GS.redScore;
+  document.getElementById('hBS').textContent  = GS.blueScore;
+  document.getElementById('hRound').textContent = `جولة ${GS.round} / ${SETTINGS.rounds}`;
+  // Timer display
+  const tEl = document.getElementById('hTimer');
+  if (SETTINGS.timerEnabled) {
+    tEl.textContent = GS.timer + 'ث';
+    tEl.style.color = GS.timer > 15 ? '#333' : GS.timer > 8 ? '#aa6600' : '#ff3300';
+  } else {
+    tEl.textContent = '';
+  }
+  rebuildHudWalls();
+}
+
+function rebuildHudWalls() {
+  if (!GS) return;
+  ['red','blue'].forEach(team => {
+    const bar = document.getElementById(team==='red'?'hRW':'hBW');
+    if (!bar) return;
+    bar.innerHTML = '';
+    GS[team].wall.forEach(hp => {
+      const d=document.createElement('div');
+      d.className='hwseg '+(hp<=0?'':hp>.6?'h':hp>.3?'m':'l');
+      bar.appendChild(d);
+    });
+  });
+}
+
+function updateTimerBar(c) {
+  if (!GS) return;
+  const fill = document.getElementById('timerFill');
+  if (!SETTINGS.timerEnabled) { fill.style.width='100%'; fill.style.background='#1a1a2a'; return; }
+  const ratio = GS.timer / SETTINGS.timer;
+  fill.style.width = (ratio*100)+'%';
+  fill.style.background = ratio>.5?'#00aa44':ratio>.25?'#cc8800':'#dd2200';
+  fill.style.boxShadow   = ratio<.2?'0 0 6px #dd2200':'none';
+}
+
+// ══════════════════════════════════════════════════════
+//  ROUND OVERLAY
+// ══════════════════════════════════════════════════════
+function showRO(round, big, sub, cb) {
+  const ov = document.getElementById('roundOverlay');
+  document.getElementById('roLbl').textContent = `جولة ${round}`;
+  const el = document.getElementById('roBig');
+  el.textContent = big; el.className = 'ro-big w';
+  document.getElementById('roSub').textContent = sub;
+  ov.classList.add('show');
+  const delay = cb ? 2700 : 1600;
+  setTimeout(()=>{ ov.classList.remove('show'); if(cb) setTimeout(cb,320); }, delay);
+}
+
+function showROWinner(round, bigText, cls, sub, cb) {
+  const ov = document.getElementById('roundOverlay');
+  document.getElementById('roLbl').textContent = `نهاية الجولة ${round}`;
+  const el = document.getElementById('roBig');
+  el.textContent = bigText; el.className = 'ro-big '+cls;
+  document.getElementById('roSub').textContent = sub;
+  ov.classList.add('show');
+  setTimeout(()=>{ ov.classList.remove('show'); if(cb) setTimeout(cb,320); }, 2700);
+}
+
+// ══════════════════════════════════════════════════════
+//  END ROUND / GAME
+// ══════════════════════════════════════════════════════
+function endRound(reason) {
+  if (!GS || !GS.running) return;
+  GS.running = false;
+
+  const rH = GS.blue.hits, bH = GS.red.hits;
+  let winner = 'draw';
+  if (rH > bH) { GS.redScore++;  winner='red';  }
+  else if (bH > rH) { GS.blueScore++; winner='blue'; }
+  GS.roundLog.push({ rH, bH, winner, reason });
+
+  const wLabel = winner==='red'?'🔴 الأحمر':winner==='blue'?'🔵 الأزرق':'🤝 تعادل';
+  const cls    = winner==='red'?'r':winner==='blue'?'b':'w';
+  const reasonAr = reason==='timer' ? 'انتهى الوقت' : 'نفدت الطلقات';
+  const sub    = `${reasonAr} | أحمر: ${rH} إصابة  |  أزرق: ${bH} إصابة`;
+
+  const isFinal = GS.round >= SETTINGS.rounds || GS.redScore > SETTINGS.rounds/2 || GS.blueScore > SETTINGS.rounds/2;
+
+  showROWinner(GS.round, wLabel, cls, sub, () => {
+    if (isFinal) showGameOver();
+    else {
+      GS.round++;
+      showRO(GS.round, 'استعد!', '', () => beginRound());
     }
   });
-
-  const filled = SLOTS.filter(s => lobSlots[s]).length;
-  const rdyN   = SLOTS.filter(s => lobRdy[s]).length;
-  document.getElementById('lob-status').textContent =
-    filled < 2 ? `${filled}/4 لاعبين — في انتظار المزيد…`
-    : filled < 4 ? `${filled}/4 لاعبين`
-    : `${rdyN}/4 جاهزين`;
 }
 
-function toggleReady(){
-  amIRdy = !amIRdy;
-  lobRdy[mySlot] = amIRdy;
-  const btn = document.getElementById('rdybtn');
-  btn.textContent = amIRdy ? '✅ مستعد!' : '✋ مستعد؟';
-  btn.classList.toggle('on', amIRdy);
-  // update presence
-  if(ablyCh) ablyCh.presence.update({ slot: mySlot, rdy: amIRdy });
-  // notify others
-  pub({ t:'rdy', slot: mySlot, v: amIRdy });
-  renderLobby();
-  checkAllRdy();
+function showGameOver() {
+  if (!GS) return; stopGame();
+  const w = GS.redScore>GS.blueScore?'red':GS.blueScore>GS.redScore?'blue':'draw';
+  const wt = w==='red'?'🏆 الفريق الأحمر':w==='blue'?'🏆 الفريق الأزرق':'🤝 تعادل!';
+  const wc = w==='red'?'var(--red)':w==='blue'?'var(--blue)':'#fff';
+  document.getElementById('goWin').textContent=wt; document.getElementById('goWin').style.color=wc;
+  document.getElementById('goSc').textContent=`${GS.redScore} — ${GS.blueScore}`;
+  document.getElementById('goRounds').innerHTML = GS.roundLog.map((r,i)=>`
+    <div class="go-rbox">
+      <div class="grn">جولة ${i+1}</div>
+      <div class="grr">🔴 ${r.rH}</div><div class="grb">🔵 ${r.bH}</div>
+      <div class="grw" style="color:${r.winner==='red'?'var(--red)':r.winner==='blue'?'var(--blue)':'#666'}">
+        ${r.winner==='draw'?'تعادل':r.winner==='red'?'✓ أحمر':'✓ أزرق'}
+      </div>
+    </div>`).join('');
+  showScreen('gameOverScreen');
 }
 
-function checkAllRdy(){
-  const filled = SLOTS.filter(s => lobSlots[s]);
-  if(filled.length < 2) return; // need at least 2 players
+function restartGame() { isOnline ? showMenu() : showRoleSelect(); }
+function stopGame() { if(anim){cancelAnimationFrame(anim);anim=null;} if(GS)GS.running=false; }
 
-  // must have at least one player per team
-  const hasRed  = lobSlots['r0'] || lobSlots['r1'];
-  const hasBlue = lobSlots['b0'] || lobSlots['b1'];
-  if(!hasRed || !hasBlue) return;
+// ══════════════════════════════════════════════════════
+//  HINTS
+// ══════════════════════════════════════════════════════
+function updateHintLabel() {
+  const h = document.getElementById('ctrlHint');
+  const isShooter = myRole==='redShooter'||myRole==='blueShooter';
+  h.textContent = isShooter
+    ? '👆 المس واسحب للتحرك · ارفع إصبعك لوقف النار'
+    : '👆 المس واسحب لتحريك الدرع';
+}
 
-  // all present players must be ready
-  if(!filled.every(s => lobRdy[s])) return;
+// ══════════════════════════════════════════════════════
+//  ONLINE (Ably)
+// ══════════════════════════════════════════════════════
+const ABLY_KEY = 'UcDcBw.YJJl6g:LDwkET05nlae7VeirAz44uL8hE16cLZ8MyrSFwCnolk';
+const myPID = Math.random().toString(36).substr(2,8);
+let ablyClient=null, ablyChannel=null, roomPlayers={}, currentRoom='';
 
-  // the player with the lexicographically smallest ID starts the game
-  const leader = filled.map(s => lobSlots[s]).sort()[0];
-  if(leader === myId){
-    pub({ t:'start', round:1 });
-    round=1; rndHits={red:0,blue:0}; totals={red:0,blue:0};
-    wallHP={red:MAX_HITS,blue:MAX_HITS};
-    startRound();
+function roleLabel(r){
+  return{redShooter:'🔴 رشاش أحمر',redShield:'🔴 درع أحمر',blueShooter:'🔵 رشاش أزرق',blueShield:'🔵 درع أزرق'}[r]||r;
+}
+function setLS(t){document.getElementById('lobbyStatus').innerHTML=t;}
+
+async function loadAbly(){
+  return new Promise((res,rej)=>{
+    if(window.Ably){res();return;}
+    const s=document.createElement('script');s.src='https://cdn.ably.com/lib/ably.min-1.js';
+    s.onload=res;s.onerror=rej;document.head.appendChild(s);
+  });
+}
+async function createRoom(){
+  document.getElementById('roomCode').value=Math.random().toString(36).substr(2,5).toUpperCase();
+  await joinRoom();
+}
+async function joinRoom(){
+  const code=document.getElementById('roomCode').value.trim();
+  if(!code||code.length<3){setLS('⚠ أدخل كوداً صالحاً');return;}
+  setLS('جاري الاتصال<span class="ldots"></span>');
+  try{
+    await loadAbly();
+    if(ablyClient){ablyClient.close();ablyClient=null;}
+    ablyClient=new Ably.Realtime({key:ABLY_KEY,clientId:myPID});
+    currentRoom='wb_'+code;
+    ablyChannel=ablyClient.channels.get(currentRoom);
+    ablyChannel.subscribe('pj',m=>onPJ(m.data));
+    ablyChannel.subscribe('pr',m=>onPR(m.data));
+    ablyChannel.subscribe('gs',m=>onGS(m.data));
+    ablyChannel.subscribe('st',m=>onST(m.data));
+    ablyClient.connection.on('connected',()=>{
+      document.getElementById('netDot').textContent='● متصل';document.getElementById('netDot').className='on';
+      const taken=Object.values(roomPlayers).map(p=>p.role);
+      const all=['redShooter','redShield','blueShooter','blueShield'];
+      const myR=all.find(r=>!taken.includes(r));
+      if(!myR){setLS('⚠ الغرفة ممتلئة!');return;}
+      myRole=myR;roomPlayers[myPID]={id:myPID,role:myR,ready:false};
+      ablyChannel.publish('pj',roomPlayers[myPID]);
+      document.getElementById('readyBtn').style.display='block';
+      document.getElementById('myLobbyRole').textContent='دورك: '+roleLabel(myR);
+      setLS('انضممت إلى الغرفة '+code);refreshSlots();
+    });
+    ablyClient.connection.on('failed',()=>{setLS('⚠ فشل الاتصال');});
+  }catch(e){setLS('⚠ خطأ في تحميل Ably');console.error(e);}
+}
+function onPJ(d){roomPlayers[d.id]=d;refreshSlots();setLS(roleLabel(d.role)+' انضم!');}
+function onPR(d){
+  if(roomPlayers[d.id])roomPlayers[d.id].ready=true;refreshSlots();
+  const rc=Object.values(roomPlayers).filter(p=>p.ready).length;
+  setLS(`جاهز: ${rc} / ${Object.values(roomPlayers).length}`);
+  if(Object.values(roomPlayers).length>=4&&Object.values(roomPlayers).every(p=>p.ready)){
+    if(Object.keys(roomPlayers).sort()[0]===myPID)ablyChannel.publish('gs',{t:Date.now()});
   }
 }
-
-function reqSwap(target){
-  if(target === mySlot) return;
-  const prev = mySlot;
-  const tid  = lobSlots[target];
-  lobSlots[target] = myId;
-  lobSlots[prev]   = tid || null;
-  mySlot  = target;
-  amIRdy  = false;
-  lobRdy[target] = false;
-  lobRdy[prev]   = false;
-  document.getElementById('rdybtn').textContent = '✋ مستعد؟';
-  document.getElementById('rdybtn').classList.remove('on');
-  if(ablyCh) ablyCh.presence.update({ slot: mySlot, rdy: false });
-  pub({ t:'swap', fr:prev, to:target, fid:myId, tid:tid||null });
-  renderLobby();
+function setReady(){
+  if(!ablyChannel)return;
+  document.getElementById('readyBtn').disabled=true;document.getElementById('readyBtn').textContent='✅ جاهز!';
+  if(roomPlayers[myPID])roomPlayers[myPID].ready=true;ablyChannel.publish('pr',{id:myPID});
+}
+function refreshSlots(){
+  const rl=['redShooter','redShield','blueShooter','blueShield'];
+  const lb=['🔴 رشاش أحمر','🔴 درع أحمر','🔵 رشاش أزرق','🔵 درع أزرق'];
+  rl.forEach((r,i)=>{
+    const sl=document.getElementById('ls'+i),p=Object.values(roomPlayers).find(x=>x.role===r);
+    if(p){const me=p.id===myPID;sl.textContent=lb[i]+(p.ready?' ✅':' ⏳')+(me?' (أنت)':'');sl.className='lslot '+(me?'fm':r.startsWith('red')?'fr':'fb');}
+    else{sl.textContent=lb[i]+' — فارغ';sl.className='lslot';}
+  });
+}
+function onGS(){
+  gameMode='online';isOnline=true;INPUT.left=INPUT.right=INPUT.firing=false;
+  resize();initGame();showScreen('gameScreen');setupTouchControls();syncPCanvas();
+  updateHintLabel();document.getElementById('roleBadge').textContent=roleLabel(myRole);
+  showRO(1,roleLabel(myRole)+' — استعد!','',()=>{GS.running=true;if(anim)cancelAnimationFrame(anim);last=performance.now();anim=requestAnimationFrame(loop);});
+}
+function onST(d){
+  if(!GS)return;
+  if(d.rs!==undefined&&myRole!=='redShooter')  GS.red.shooter.x=d.rs;
+  if(d.rsh!==undefined&&myRole!=='redShield')  GS.red.shield.x=d.rsh;
+  if(d.bs!==undefined&&myRole!=='blueShooter') GS.blue.shooter.x=d.bs;
+  if(d.bsh!==undefined&&myRole!=='blueShield') GS.blue.shield.x=d.bsh;
+}
+let bcastT=0;
+function broadcastOnline(){
+  if(!ablyChannel||!GS)return; bcastT++; if(bcastT<3)return; bcastT=0;
+  const p={};
+  if(myRole==='redShooter')  p.rs =GS.red.shooter.x;
+  if(myRole==='redShield')   p.rsh=GS.red.shield.x;
+  if(myRole==='blueShooter') p.bs =GS.blue.shooter.x;
+  if(myRole==='blueShield')  p.bsh=GS.blue.shield.x;
+  ablyChannel.publish('st',p);
 }
 
-// ══════════════════════════════════════════════
-//  GAME — ROLES & LAYOUT
-// ══════════════════════════════════════════════
-function getRoles(r){
-  const odd = r % 2 === 1;
-  return {
-    red_gun:    odd ? 'r0' : 'r1',
-    red_shield: odd ? 'r1' : 'r0',
-    blue_gun:   odd ? 'b0' : 'b1',
-    blue_shield:odd ? 'b1' : 'b0',
-  };
-}
-function myRole()  { const R=getRoles(round); return Object.entries(R).find(([,s])=>s===mySlot)?.[0]||null; }
-function iGun()    { return myRole()?.endsWith('gun'); }
-function iShield() { return myRole()?.endsWith('shield'); }
-function myTeam()  { return mySlot?.startsWith('r') ? 'red' : 'blue'; }
+// ══════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════
+resize();
+refreshSettingsUI();
+syncPCanvas();
+window.addEventListener('resize', () => { resize(); syncPCanvas(); });
 
-function lyt(){
-  const wh = Math.max(WALL_H, H*.04);
-  return {
-    wh,
-    redWallY:    0,
-    blueWallY:   H - wh,
-    redGunY:     wh + H*.18,
-    blueGunY:    H - wh - H*.18,
-    redShieldY:  wh + H*.06,
-    blueShieldY: H - wh - H*.06,
-    minX: W*.06, maxX: W*.94,
-  };
-}
-
-function gxPx(slot, l){
-  const range = l.maxX - l.minX;
-  return l.minX + gx[slot] * range;
-}
-function sxPx(slot, l){
-  const range = l.maxX - l.minX;
-  return l.minX + sx[slot] * range;
-}
-
-// ══════════════════════════════════════════════
-//  GAME — START ROUND
-// ══════════════════════════════════════════════
-function startRound(){
-  bullets=[]; sparks=[];
-  gameOn=true; rndEnd=false;
-  gx={r0:0.5,b0:0.5}; sx={r1:0.5,b1:0.5};
-  showScreen('game');
-  document.getElementById('round-end').style.display='none';
-  document.getElementById('win-screen').style.display='none';
-  const c = document.getElementById('arena');
-  W = c.width  = c.offsetWidth;
-  H = c.height = c.offsetHeight;
-  updHUD();
-  document.getElementById('rlbl').textContent = `جولة ${round}/${ROUNDS}`;
-  const rmap = {red_gun:'🔴 رشاش 🔫', red_shield:'🔴 درع 🛡️', blue_gun:'🔵 رشاش 🔫', blue_shield:'🔵 درع 🛡️'};
-  document.getElementById('myrole').textContent = rmap[myRole()] || '—';
-  setupTouch();
-  stopFire();
-  if(iGun()){ doFire(); fireTid = setInterval(doFire, FIRE_MS); }
-  if(!looping){ looping=true; requestAnimationFrame(loop); }
-}
-
-function updHUD(){
-  document.getElementById('hscore-r').textContent = totals.red;
-  document.getElementById('hscore-b').textContent = totals.blue;
-  document.getElementById('hbar-r').style.width = Math.max(0, wallHP.red/MAX_HITS*100)+'%';
-  document.getElementById('hbar-b').style.width = Math.max(0, wallHP.blue/MAX_HITS*100)+'%';
-}
-
-// ══════════════════════════════════════════════
-//  GAME — CONTROLS
-// ══════════════════════════════════════════════
-function setupTouch(){
-  const el = document.getElementById('game');
-  el.ontouchstart = e => { e.preventDefault(); touchLast = e.touches[0].clientX; };
-  el.ontouchmove  = e => {
-    e.preventDefault();
-    const cx = e.touches[0].clientX;
-    const dx = cx - touchLast; touchLast = cx;
-    moveMy(dx);
-    const now = Date.now();
-    if(now - lastSend > 30){ sendPos(); lastSend = now; }
-  };
-  el.ontouchend = e => e.preventDefault();
-  let md = false;
-  el.onmousedown = e => { md=true; touchLast=e.clientX; };
-  el.onmousemove = e => { if(!md) return; const dx=e.clientX-touchLast; touchLast=e.clientX; moveMy(dx); sendPos(); };
-  el.onmouseup   = () => md = false;
-}
-
-function moveMy(dx){
-  if(!gameOn) return;
-  const norm = dx / W;
-  if(iGun()){
-    const s = mySlot==='r0' ? 'r0' : 'b0';
-    gx[s] = Math.max(0, Math.min(1, gx[s] + norm*3.5));
-  } else if(iShield()){
-    const s = mySlot==='r1' ? 'r1' : 'b1';
-    sx[s] = Math.max(0, Math.min(1, sx[s] + norm*4));
-  }
-}
-
-function sendPos(){
-  if(!gameOn) return;
-  if(iGun())    pub({ t:'pos', slot:mySlot, x: gx[mySlot==='r0'?'r0':'b0'] });
-  if(iShield()) pub({ t:'pos', slot:mySlot, x: sx[mySlot==='r1'?'r1':'b1'] });
-}
-
-// ══════════════════════════════════════════════
-//  GAME — FIRING
-// ══════════════════════════════════════════════
-function stopFire(){ clearInterval(fireTid); fireTid=null; }
-
-function doFire(){
-  if(!gameOn || rndEnd || !iGun()) return;
-  const l    = lyt();
-  const team = myTeam();
-  const slot = mySlot==='r0' ? 'r0' : 'b0';
-  const bx   = gxPx(slot, l);
-  const by   = team==='red' ? l.redGunY : l.blueGunY;
-  const vy   = team==='red' ? BSPD : -BSPD;
-  const b = {
-    id: myId+'_'+Date.now()+'_'+Math.random().toString(36).substr(2,3),
-    x:bx, y:by, vx:0, vy, team, life:1, mine:true
-  };
-  bullets.push(b);
-  pub({ t:'bul', id:b.id, x:b.x, y:b.y, vx:b.vx, vy:b.vy, team:b.team });
-}
-
-// ══════════════════════════════════════════════
-//  GAME — LOOP
-// ══════════════════════════════════════════════
-function loop(){
-  requestAnimationFrame(loop);
-  const c = document.getElementById('arena');
-  W = c.width  = c.offsetWidth;
-  H = c.height = c.offsetHeight;
-  if(gameOn){ tickBullets(); tickSparks(); }
-  draw();
-}
-
-function tickBullets(){
-  const l = lyt(), R = getRoles(round);
-  for(let i=bullets.length-1; i>=0; i--){
-    const b = bullets[i];
-    b.x += b.vx; b.y += b.vy; b.life -= .005;
-    if(b.life<=0 || b.x<-20 || b.x>W+20){ bullets.splice(i,1); continue; }
-
-    const et     = b.team==='red' ? 'blue' : 'red';
-    const shSlot = et==='red' ? R.red_shield : R.blue_shield;
-    const shx    = sxPx(shSlot, l);
-    const shy    = et==='red' ? l.redShieldY : l.blueShieldY;
-
-    if(Math.abs(b.x-shx)<SHIELD_W/2+BR && Math.abs(b.y-shy)<SHIELD_H+BR*2){
-      addSparks(b.x, b.y, 'shield'); bullets.splice(i,1); continue;
-    }
-
-    const hitRedWall  = b.team==='blue' && b.y <= l.redWallY+l.wh+BR;
-    const hitBlueWall = b.team==='red'  && b.y >= l.blueWallY-BR;
-
-    if(hitRedWall || hitBlueWall){
-      const dmgTeam = hitRedWall ? 'red' : 'blue';
-      addSparks(b.x, b.y, b.team);
-      bullets.splice(i,1);
-      if(b.mine){
-        wallHP[dmgTeam]   = Math.max(0, wallHP[dmgTeam]-1);
-        rndHits[b.team]   = (rndHits[b.team]||0)+1;
-        totals[b.team]    = (totals[b.team]||0)+1;
-        updHUD();
-        pub({ t:'hit', tm:dmgTeam, tk:b.team, hp:wallHP[dmgTeam], rh:rndHits[b.team], ts:totals[b.team] });
-        if(wallHP[dmgTeam]<=0) endRound(b.team);
-      }
-    }
-  }
-}
-
-function tickSparks(){
-  for(let i=sparks.length-1; i>=0; i--){
-    const p=sparks[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=.12; p.life-=p.d;
-    if(p.life<=0) sparks.splice(i,1);
-  }
-}
-
-function addSparks(x, y, team){
-  const col = team==='red'?'#ff2244':team==='blue'?'#1188ff':'#00dd66';
-  for(let k=0;k<10;k++){
-    const a=Math.random()*Math.PI*2, s=1+Math.random()*5;
-    sparks.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,life:1,d:.04+Math.random()*.05,sz:1.5+Math.random()*3,col});
-  }
-}
-
-// ══════════════════════════════════════════════
-//  GAME — END ROUND / WIN
-// ══════════════════════════════════════════════
-function endRound(winner){
-  if(rndEnd) return;
-  rndEnd=true; gameOn=false; stopFire();
-  const re = document.getElementById('round-end');
-  re.style.display='flex';
-  document.getElementById('re-title').textContent = `نهاية الجولة ${round} — فاز ${winner==='red'?'🔴 الأحمر':'🔵 الأزرق'}!`;
-  document.getElementById('re-r').textContent = totals.red;
-  document.getElementById('re-b').textContent = totals.blue;
-  let cd=3; document.getElementById('re-cd').textContent=cd;
-  const t = setInterval(()=>{
-    cd--; document.getElementById('re-cd').textContent=cd;
-    if(cd<=0){
-      clearInterval(t);
-      if(round >= ROUNDS){
-        pub({ t:'over', red:totals.red, blue:totals.blue });
-        showWin({red:totals.red, blue:totals.blue});
-      } else {
-        round++;
-        rndHits={red:0,blue:0}; wallHP={red:MAX_HITS,blue:MAX_HITS};
-        // leader broadcasts next round
-        const filled  = SLOTS.filter(s=>lobSlots[s]);
-        const leader  = filled.map(s=>lobSlots[s]).sort()[0];
-        if(leader===myId) pub({ t:'nxt', round });
-        startRound();
-      }
-    }
-  }, 1000);
-}
-
-function showWin(d){
-  stopFire(); gameOn=false;
-  const r=d.red??totals.red, b=d.blue??totals.blue;
-  document.getElementById('w-r').textContent=r;
-  document.getElementById('w-b').textContent=b;
-  const wt=document.getElementById('win-title');
-  wt.textContent=(r>b?'🔴 الأحمر يفوز':b>r?'🔵 الأزرق يفوز':'🤝 تعادل')+' 🏆';
-  wt.style.color=r>b?'var(--red)':b>r?'var(--blue)':'var(--gold)';
-  document.getElementById('win-screen').style.display='flex';
-}
-
-// ══════════════════════════════════════════════
-//  DRAW
-// ══════════════════════════════════════════════
-function draw(){
-  const c   = document.getElementById('arena');
-  const ctx = c.getContext('2d');
-  const l   = lyt(), R = getRoles(round);
-
-  ctx.fillStyle='#07070f'; ctx.fillRect(0,0,W,H);
-
-  ctx.strokeStyle='rgba(255,255,255,.02)'; ctx.lineWidth=1;
-  for(let x=0;x<W;x+=48){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
-  for(let y=0;y<H;y+=48){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
-
-  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1.5; ctx.setLineDash([5,7]);
-  ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke(); ctx.setLineDash([]);
-
-  drawWall(ctx, 0, l.redWallY,  W, l.wh, 'red',  wallHP.red);
-  drawWall(ctx, 0, l.blueWallY, W, l.wh, 'blue', wallHP.blue);
-
-  drawShield(ctx, sxPx(R.red_shield,l),  l.redShieldY,  '#ff2244', R.red_shield===mySlot);
-  drawShield(ctx, sxPx(R.blue_shield,l), l.blueShieldY, '#1188ff', R.blue_shield===mySlot);
-
-  drawSprayGun(ctx, gxPx('r0',l), l.redGunY,  '#ff2244',  1, R.red_gun===mySlot);
-  drawSprayGun(ctx, gxPx('b0',l), l.blueGunY, '#1188ff', -1, R.blue_gun===mySlot);
-
-  for(const b of bullets){
-    ctx.save(); ctx.globalAlpha=Math.min(1,b.life*2);
-    const col=b.team==='red'?'#ff6633':'#44aaff';
-    ctx.shadowBlur=12; ctx.shadowColor=col; ctx.fillStyle=col;
-    ctx.beginPath(); ctx.arc(b.x,b.y,BR,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha*=.3;
-    ctx.beginPath(); ctx.arc(b.x-b.vx*1.5,b.y-b.vy*1.5,BR*.7,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-
-  for(const p of sparks){
-    ctx.save(); ctx.globalAlpha=p.life;
-    ctx.fillStyle=p.col; ctx.shadowBlur=5; ctx.shadowColor=p.col;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.sz,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-}
-
-function drawWall(ctx,x,y,w,h,team,hp){
-  const col=team==='red'?'#ff2244':'#1188ff';
-  const pct=hp/MAX_HITS;
-  ctx.fillStyle=col+'33'; ctx.fillRect(x,y,w,h);
-  ctx.strokeStyle=col+'55'; ctx.lineWidth=1;
-  const bw=W/14, bh=h/2;
-  for(let row=0;row<2;row++){
-    const offset=row%2===0?0:bw/2;
-    for(let col2=0;col2<15;col2++){
-      ctx.strokeRect(x+col2*bw-offset, y+row*bh, bw, bh);
-    }
-  }
-  if(pct<1){ ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(x,y,w*(1-pct),h); }
-  ctx.shadowBlur=15; ctx.shadowColor=col; ctx.strokeStyle=col; ctx.lineWidth=2;
-  ctx.strokeRect(x,y,w,h); ctx.shadowBlur=0;
-  ctx.font=`bold ${Math.max(10,h*.55)}px Orbitron,monospace`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillStyle='#fff'; ctx.globalAlpha=.85;
-  ctx.fillText(hp, w/2, y+h/2); ctx.globalAlpha=1;
-}
-
-function drawSprayGun(ctx,x,y,col,dir,isMe){
-  ctx.save(); ctx.translate(x,y); ctx.scale(1,dir);
-  if(isMe){ ctx.shadowBlur=22; ctx.shadowColor=col; }
-  ctx.fillStyle=col+'33'; ctx.strokeStyle=col; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.roundRect(-10,-12,20,30,5); ctx.fill(); ctx.stroke();
-  ctx.fillStyle=col+'66'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.roundRect(-5,16,10,20,3); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.roundRect(-14,0,10,18,4); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle=col; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.arc(-9,14,5,0,Math.PI); ctx.stroke();
-  ctx.fillStyle=isMe?col:'rgba(255,255,255,.4)';
-  ctx.shadowBlur=isMe?14:0; ctx.shadowColor=col;
-  ctx.beginPath(); ctx.arc(0,36,5,0,Math.PI*2); ctx.fill();
-  if(isMe&&gameOn&&iGun()){
-    ctx.fillStyle='#ffcc00'; ctx.shadowBlur=10; ctx.shadowColor='#ffcc00';
-    ctx.beginPath(); ctx.arc(0,38+Math.random()*4,3,0,Math.PI*2); ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawShield(ctx,x,y,col,isMe){
-  ctx.save(); ctx.translate(x,y);
-  if(isMe){ ctx.shadowBlur=18; ctx.shadowColor=col; }
-  ctx.fillStyle=col+'55'; ctx.strokeStyle=col; ctx.lineWidth=isMe?3:2;
-  ctx.beginPath(); ctx.roundRect(-SHIELD_W/2,-SHIELD_H/2,SHIELD_W,SHIELD_H,SHIELD_H/2);
-  ctx.fill(); ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,.12)';
-  ctx.beginPath(); ctx.roundRect(-SHIELD_W/2+5,-SHIELD_H/2+3,SHIELD_W-10,SHIELD_H/3,4); ctx.fill();
-  ctx.restore();
-}
-
-window.addEventListener('resize',()=>{
-  const c=document.getElementById('arena');
-  if(c){ W=c.width=c.offsetWidth; H=c.height=c.offsetHeight; }
-});
 </script>
 </body>
 </html>
